@@ -638,7 +638,8 @@ struct
             (match latest_gc with
             | None -> assert false
             | Some s -> Stat_recorder.report_gc s);
-            if X.rs.config.stop_after_first_gc then X.rs.early_stop <- true
+            X.rs.config.stop_after_nb_gc <- X.rs.config.stop_after_nb_gc - 1;
+            if X.rs.config.stop_after_nb_gc <= 0 then X.rs.early_stop <- true
         | "gc_launch_failure" -> ()
         | "gc_failure" -> assert false
         | _ -> assert false

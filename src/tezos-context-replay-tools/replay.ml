@@ -35,7 +35,7 @@ type indexing_strategy = Always | Minimal | Contents
 
 let main indexing_strategy block_count startup_store_type replayable_trace_path
     artefacts_dir keep_store keep_stats_trace no_summary empty_blobs
-    stats_trace_message no_pp_summary gc_when gc_target stop_after_first_gc =
+    stats_trace_message no_pp_summary gc_when gc_target stop_after_nb_gc =
   let startup_store_type =
     match startup_store_type with None -> `Fresh | Some v -> `Copy_from v
   in
@@ -64,7 +64,7 @@ let main indexing_strategy block_count startup_store_type replayable_trace_path
             indexing_strategy;
             gc_when;
             gc_target;
-            stop_after_first_gc;
+            stop_after_nb_gc;
           }
       end)
   in
@@ -224,19 +224,19 @@ let gc_target =
   let doc = Arg.info ~doc:"Target of GCs." [ "gc-target" ] in
   Arg.(value @@ opt (conv (parser, printer)) (`Distance (8191 * 6)) doc)
 
-let stop_after_first_gc =
+let stop_after_nb_gc =
   let doc =
     Arg.info ~doc:"Whether or not the replay should stop after the first GC."
-      [ "stop-after-first-gc" ]
+      [ "stop-after-nb-gc" ]
   in
-  Arg.(value @@ flag doc)
+  Arg.(value @@ opt int max_int @@ doc)
 
 let main_t =
   Term.(
     const main $ indexing_strategy $ block_count $ startup_store_type
     $ replayable_trace_path $ artefacts_dir $ keep_store $ keep_stats_trace
     $ no_summary $ empty_blobs $ stats_trace_message $ no_pp_summary $ gc_when
-    $ gc_target $ stop_after_first_gc)
+    $ gc_target $ stop_after_nb_gc)
 
 let () =
   let info =
