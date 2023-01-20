@@ -155,30 +155,6 @@ module Make
   type node_key = Impl.node_key
   type value_key = Impl.value_key
   type kinded_key = Impl.kinded_key
-
-  type tree_stats = Impl.tree_stats = private {
-    nodes : int;
-    leafs : int;
-    skips : int;
-    depth : int;
-    width : int;
-  }
-
-  type module_tree_stats = Impl.module_tree_stats = private {
-    mutable contents_hash : int;
-    mutable contents_find : int;
-    mutable contents_add : int;
-    mutable contents_mem : int;
-    mutable node_hash : int;
-    mutable node_mem : int;
-    mutable node_index : int;
-    mutable node_add : int;
-    mutable node_find : int;
-    mutable node_val_v : int;
-    mutable node_val_find : int;
-    mutable node_val_list : int;
-  }
-
   type error += Cannot_create_file = Impl.Cannot_create_file
   type error += Cannot_open_file = Impl.Cannot_open_file
   type error += Cannot_retrieve_commit_info = Impl.Cannot_retrieve_commit_info
@@ -708,10 +684,6 @@ module Make
     record_unhandled_lwt Recorder.Length
     @@ Impl.length (Context_traced.unwrap x) y
 
-  let tree_stats x =
-    record_unhandled_lwt Recorder.Stats
-    @@ Impl.tree_stats (Tree_traced.unwrap x)
-
   let check_protocol_commit_consistency ~expected_context_hash
       ~given_protocol_hash ~author ~message ~timestamp ~test_chain_status
       ~predecessor_block_metadata_hash ~predecessor_ops_metadata_hash
@@ -782,7 +754,6 @@ module Make
   module Proof = Impl.Proof
 
   let index x = Impl.index (Context_traced.unwrap x) |> Index_abstract.wrap
-  let module_tree_stats = Impl.module_tree_stats
   let compute_testchain_genesis = Impl.compute_testchain_genesis
   let compute_testchain_chain_id = Impl.compute_testchain_chain_id
   let get_hash_version x = Impl.get_hash_version (Context_traced.unwrap x)
