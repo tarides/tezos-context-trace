@@ -39,7 +39,7 @@ let system_wide_now () =
   Mtime_clock.now () |> Mtime.to_uint64_ns |> Int64.to_float |> ( *. ) 1e-9
 
 module Make
-    (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) (Trace_config : sig
+    (Impl : Tezos_context_disk.TEZOS_CONTEXT_UNIX) (Trace_config : sig
       val prefix : string
     end) =
 struct
@@ -53,7 +53,7 @@ struct
           Printf.sprintf "raw_actions_trace.%d.trace" (Unix.getpid ())
         in
         let path = Misc.prepare_trace_file Trace_config.prefix filename in
-        Logs.app (fun l -> l "Creating %s" path) ;
+        Logs.app (fun l -> l "Creating %s" path);
         writer := Some (Def.create_file path ())
     | Some _ -> ()
   (* This function is not expected to be called several times because
@@ -78,7 +78,6 @@ struct
   (* FIXME: wait for Repr modification to support size in like *)
 
   type tree = Impl.tree * varint63
-
   type context = Impl.context * varint63
 
   (** Write a new [row] to [writer] *)
@@ -86,14 +85,13 @@ struct
 
   let encode_output_value b =
     if Bytes.length b <= 17 then `Value b
-    else `Hash (Digestif.MD5.digestv_bytes [b])
+    else `Hash (Digestif.MD5.digestv_bytes [ b ])
 
   module Tree = struct
     (** Write a new [row] to [writer] *)
     let push v = Def.append_row (get_writer ()) (Def.Tree v)
 
     let empty (_, x) (_, res) = Def.Tree.Empty (x, res) |> push
-
     let of_value (_, x) v (_, res) = Def.Tree.Of_value ((x, v), res) |> push
 
     let of_raw raw (_, res) =
@@ -107,7 +105,6 @@ struct
       Def.Tree.Of_raw (aux raw, res) |> push
 
     let mem (_, x) y res = Def.Tree.Mem ((x, y), res) |> push
-
     let mem_tree (_, x) y res = Def.Tree.Mem_tree ((x, y), res) |> push
 
     let find (_, x) y res =
@@ -115,7 +112,6 @@ struct
       Def.Tree.Find ((x, y), res) |> push
 
     let is_empty (_, x) res = Def.Tree.Is_empty (x, res) |> push
-
     let kind (_, x) res = Def.Tree.Kind (x, res) |> push
 
     let hash (_, x) res =
@@ -141,7 +137,7 @@ struct
         | None -> Optint.Int63.of_int64 (-42L)
         | Some (_, (_, first)) -> first
       in
-      let res = Def.{first_tracker; count} in
+      let res = Def.{ first_tracker; count } in
       Def.Tree.List ((x, offset, length), res) |> push
 
     let add (_, x) y z (_, res) = Def.Tree.Add ((x, y, z), res) |> push
@@ -152,11 +148,11 @@ struct
     let remove (_, x) y (_, res) = Def.Tree.Remove ((x, y), res) |> push
 
     let fold ~depth ~order (_, x) y =
-      Def.Tree.Fold_start ((depth, order), x, y) |> push ;
+      Def.Tree.Fold_start ((depth, order), x, y) |> push;
       fun z -> Def.Tree.Fold_end z |> push
 
     let fold_step _i (_, y) =
-      Def.Tree.Fold_step_enter y |> push ;
+      Def.Tree.Fold_step_enter y |> push;
       fun () -> Def.Tree.Fold_step_exit y |> push
   end
 
@@ -171,21 +167,19 @@ struct
       | None -> Optint.Int63.of_int64 (-42L)
       | Some (_, (_, first)) -> first
     in
-    let res = Def.{first_tracker; count} in
+    let res = Def.{ first_tracker; count } in
     Def.List ((x, offset, length), res) |> push
 
   let fold ~depth ~order (_, x) y =
-    Def.Fold_start ((depth, order), x, y) |> push ;
+    Def.Fold_start ((depth, order), x, y) |> push;
     fun z -> Def.Fold_end z |> push
 
   let fold_step _i (_, y) =
-    Def.Fold_step_enter y |> push ;
+    Def.Fold_step_enter y |> push;
     fun () -> Def.Fold_step_exit y |> push
 
   let add_tree (_, x) y (_, z) (_, res) = Def.Add_tree ((x, y, z), res) |> push
-
   let mem (_, x) y res = Def.Mem ((x, y), res) |> push
-
   let mem_tree (_, x) y res = Def.Mem_tree ((x, y), res) |> push
 
   let find (_, x) y res =
@@ -218,17 +212,17 @@ struct
     let before = system_wide_now () in
     fun res ->
       let after = system_wide_now () in
-      Def.Exists ((x, res), {before; after}) |> push
+      Def.Exists ((x, res), { before; after }) |> push
 
   let retrieve_commit_info _index x =
     let x = Context_hash.to_string x.Block_header.shell.context in
     let before = system_wide_now () in
     fun res ->
       let after = system_wide_now () in
-      Def.Retrieve_commit_info ((x, Result.is_ok res), {before; after}) |> push
+      Def.Retrieve_commit_info ((x, Result.is_ok res), { before; after })
+      |> push
 
   let add (_, x) y z (_, res) = Def.Add ((x, y, z), res) |> push
-
   let remove (_, x) y (_, res) = Def.Remove ((x, y), res) |> push
 
   let add_protocol (_, x) y (_, res) =
@@ -259,7 +253,7 @@ struct
     fun res ->
       let after = system_wide_now () in
       let res = Option.map (fun (_, res) -> res) res in
-      Def.Checkout ((x, res), {before; after}) |> push ;
+      Def.Checkout ((x, res), { before; after }) |> push;
       (* Flush trace on checkout *)
       Def.flush (get_writer ())
 
@@ -269,12 +263,12 @@ struct
     fun res ->
       let after = system_wide_now () in
       let res = match res with Error _ -> Error () | Ok (_, res) -> Ok res in
-      Def.Checkout_exn ((x, res), {before; after}) |> push ;
+      Def.Checkout_exn ((x, res), { before; after }) |> push;
       (* Flush trace on checkout *)
       Def.flush (get_writer ())
 
   let close _index () =
-    Def.Close |> push ;
+    Def.Close |> push;
     (* Flush trace on close *)
     Def.flush (get_writer ())
 
@@ -282,7 +276,7 @@ struct
     let before = system_wide_now () in
     fun () ->
       let after = system_wide_now () in
-      Def.Sync {before; after} |> push
+      Def.Sync { before; after } |> push
 
   let set_master _index x () =
     let x = Context_hash.to_string x in
@@ -298,7 +292,7 @@ struct
     let time = Time.Protocol.to_seconds time in
     let protocol = Protocol_hash.to_string protocol in
     let before = system_wide_now () in
-    Def.Commit_genesis_start (((chain_id, time, protocol), ()), before) |> push ;
+    Def.Commit_genesis_start (((chain_id, time, protocol), ()), before) |> push;
     Lwt.return @@ fun res ->
     let after = system_wide_now () in
     let res =
@@ -306,7 +300,7 @@ struct
       | Error _ -> Error ()
       | Ok res -> Ok (Context_hash.to_string res)
     in
-    Def.Commit_genesis_end (((), res), after) |> push ;
+    Def.Commit_genesis_end (((), res), after) |> push;
     Lwt.return_unit
 
   let clear_test_chain _index x () =
@@ -319,7 +313,7 @@ struct
     Lwt.return @@ fun res ->
     let after = system_wide_now () in
     let res = Context_hash.to_string res in
-    Def.Commit (((time, message, x), res), {before; after}) |> push ;
+    Def.Commit (((time, message, x), res), { before; after }) |> push;
     Lwt.return_unit
 
   let commit_test_chain_genesis (_, x) y =
@@ -333,15 +327,15 @@ struct
           let c = Context_hash.to_string y.shell.context in
           (a, b, c))
       in
-      Def.Commit_test_chain_genesis (((x, y), ()), {before; after}) |> push
+      Def.Commit_test_chain_genesis (((x, y), ()), { before; after }) |> push
 
   let init ~readonly ?indexing_strategy:_ _path _res =
     let readonly = match readonly with Some true -> true | _ -> false in
-    setup_writer () ;
+    setup_writer ();
     Def.Init (readonly, ()) |> push
 
   let patch_context (_, x) =
-    Def.Patch_context_enter x |> push ;
+    Def.Patch_context_enter x |> push;
     fun res ->
       let res = match res with Error _ -> Error () | Ok (_, res) -> Ok res in
       Def.Patch_context_exit (x, res) |> push
@@ -349,14 +343,14 @@ struct
   let restore_context _ ~expected_context_hash:_ ~nb_context_elements:_ ~fd:_
       ~legacy:_ ~in_memory:_ ~progress_display_mode:_ =
     Lwt.return @@ fun _res ->
-    Def.Unhandled Recorder.Restore_context |> push ;
+    Def.Unhandled Recorder.Restore_context |> push;
     Lwt.return_unit
 
   let dump_context _ _ ~fd:_ ~on_disk:_ ~progress_display_mode:_ =
     let before = system_wide_now () in
     Lwt.return @@ fun _res ->
     let after = system_wide_now () in
-    Def.Dump_context {before; after} |> push ;
+    Def.Dump_context { before; after } |> push;
     Lwt.return_unit
 
   let unhandled name _res = Def.Unhandled name |> push

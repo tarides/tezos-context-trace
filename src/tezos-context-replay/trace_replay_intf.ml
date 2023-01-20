@@ -25,7 +25,7 @@
 
 type config = {
   block_count : int option;
-  startup_store_type : [`Fresh | `Copy_from of string];
+  startup_store_type : [ `Fresh | `Copy_from of string ];
   replayable_trace_path : string;
   artefacts_dir : string;
   keep_store : bool;
@@ -34,10 +34,10 @@ type config = {
   empty_blobs : bool;
   stats_trace_message : string option;
   no_pp_summary : bool;
-  indexing_strategy : [`Always | `Minimal];
-  gc_when : [`Never | `Every of int | `Level of int];
-  gc_target : [`Distance of int | `Level of int | `Hash of Context_hash.t];
-  stop_after_first_gc : bool
+  indexing_strategy : [ `Always | `Minimal ];
+  gc_when : [ `Never | `Every of int | `Level of int ];
+  gc_target : [ `Distance of int | `Level of int | `Hash of Context_hash.t ];
+  stop_after_first_gc : bool;
 }
 
 module type Config = sig
@@ -47,9 +47,7 @@ end
 module type Sigs = sig
   type nonrec config = config
 
-  module Make
-      (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX)
-      (Conf : Config) : sig
+  module Make (Impl : Tezos_context_disk.TEZOS_CONTEXT_UNIX) (Conf : Config) : sig
     val run : unit -> unit Lwt.t
   end
 end

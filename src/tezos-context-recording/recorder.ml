@@ -69,49 +69,37 @@ type unhandled =
 [@@deriving repr]
 
 module type S = sig
-  module Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX
+  module Impl : Tezos_context_disk.TEZOS_CONTEXT_UNIX
 
-  (** A [Context.tree] alongside a unique identifier. *)
   type tree = Impl.tree * Optint.Int63.t
+  (** A [Context.tree] alongside a unique identifier. *)
 
-  (** A [Context.t] alongside a unique identifier. *)
   type context = Impl.context * Optint.Int63.t
+  (** A [Context.t] alongside a unique identifier. *)
 
-  (** Return type of most observers *)
   type 'res output := 'res -> unit
+  (** Return type of most observers *)
 
-  (** Return type of some most observers that need the Lwt scheduler *)
   type 'res output_lwt := ('res -> unit Lwt.t) Lwt.t
+  (** Return type of some most observers that need the Lwt scheduler *)
 
+  val unhandled : unhandled -> _ output
   (** Observer function that notifies the call to an unhandled [Context]
       function. *)
-  val unhandled : unhandled -> _ output
 
   module Tree : sig
     val empty : context -> tree output
-
     val of_raw : Impl.Tree.raw -> tree output
-
     val of_value : context -> Impl.value -> tree output
-
     val mem : tree -> Impl.key -> bool output
-
     val mem_tree : tree -> Impl.key -> bool output
-
     val find : tree -> Impl.key -> Impl.value option output
-
     val is_empty : tree -> bool output
-
-    val kind : tree -> [`Tree | `Value] output
-
+    val kind : tree -> [ `Tree | `Value ] output
     val hash : tree -> Context_hash.t output
-
     val equal : tree -> tree -> bool output
-
     val to_value : tree -> Impl.value option output
-
     val clear : depth:int option -> tree -> unit output
-
     val find_tree : tree -> Impl.key -> tree option output
 
     val list :
@@ -121,15 +109,14 @@ module type S = sig
       (string * tree) list output
 
     val add : tree -> Impl.key -> Impl.value -> tree output
-
     val add_tree : tree -> Impl.key -> tree -> tree output
-
     val remove : tree -> Impl.key -> tree output
 
     val fold :
       depth:
-        [`Eq of int | `Ge of int | `Gt of int | `Le of int | `Lt of int] option ->
-      order:[`Sorted | `Undefined] ->
+        [ `Eq of int | `Ge of int | `Gt of int | `Le of int | `Lt of int ]
+        option ->
+      order:[ `Sorted | `Undefined ] ->
       tree ->
       Impl.key ->
       int output
@@ -147,22 +134,17 @@ module type S = sig
 
   val fold :
     depth:
-      [`Eq of int | `Ge of int | `Gt of int | `Le of int | `Lt of int] option ->
-    order:[`Sorted | `Undefined] ->
+      [ `Eq of int | `Ge of int | `Gt of int | `Le of int | `Lt of int ] option ->
+    order:[ `Sorted | `Undefined ] ->
     context ->
     Impl.key ->
     int output
 
   val fold_step : int -> tree -> unit output
-
   val add_tree : context -> Impl.key -> tree -> context output
-
   val mem : context -> Impl.key -> bool output
-
   val mem_tree : context -> Impl.key -> bool output
-
   val find : context -> Impl.key -> Impl.value option output
-
   val get_protocol : context -> Protocol_hash.t output
 
   val hash :
@@ -184,7 +166,6 @@ module type S = sig
     context -> Operation_metadata_list_list_hash.t option output
 
   val get_test_chain : context -> Test_chain_status.t output
-
   val exists : Impl.index -> Context_hash.t -> bool output
 
   val retrieve_commit_info :
@@ -203,9 +184,7 @@ module type S = sig
     output
 
   val add : context -> Impl.key -> Impl.value -> context output
-
   val remove : context -> Impl.key -> context output
-
   val add_protocol : context -> Protocol_hash.t -> context output
 
   val add_predecessor_block_metadata_hash :
@@ -215,7 +194,6 @@ module type S = sig
     context -> Operation_metadata_list_list_hash.t -> context output
 
   val add_test_chain : context -> Test_chain_status.t -> context output
-
   val remove_test_chain : context -> context output
 
   val fork_test_chain :
@@ -230,11 +208,8 @@ module type S = sig
     Impl.index -> Context_hash.t -> (context, exn) result output
 
   val close : Impl.index -> unit output
-
   val sync : Impl.index -> unit output
-
   val set_master : Impl.index -> Context_hash.t -> unit output
-
   val set_head : Impl.index -> Chain_id.t -> Context_hash.t -> unit output
 
   val commit_genesis :
@@ -257,7 +232,7 @@ module type S = sig
 
   val init :
     readonly:bool option ->
-    ?indexing_strategy:[`Minimal | `Always] ->
+    ?indexing_strategy:[ `Minimal | `Always ] ->
     string ->
     Impl.index output
 

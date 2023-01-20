@@ -1,10 +1,10 @@
 (library
  (name tezos_context_recording)
- (public_name tezos-context.recording)
+ (public_name tezos-context-recording)
  (libraries tezos-base
             tezos-stdlib-unix
             tezos-context.encoding
-            tezos-context.disk_sigs
+            tezos-context.disk
             tezos-context.sigs
             tezos-context.memory
             repr

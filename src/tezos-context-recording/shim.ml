@@ -26,7 +26,6 @@
 open Lwt_syntax
 
 let ( >|= ) = ( let+ )
-
 let ( >>= ) = ( let* )
 
 (** Create a wrapper for a type [t_unwrapped] (i.e. [V.t]) in order to attach
@@ -45,33 +44,26 @@ module Make_tracked (V : sig
   type t
 end) : sig
   type t
-
   type t_unwrapped = V.t
-
   type tracker = Optint.Int63.t
 
   val wrap : t_unwrapped -> t
-
   val unwrap : t -> t_unwrapped
-
   val tracker : t -> tracker
 end = struct
   type tracker = Optint.Int63.t
-
   type t_unwrapped = V.t
-
-  type t = {v : t_unwrapped; tr : tracker}
+  type t = { v : t_unwrapped; tr : tracker }
 
   let counter = ref (Optint.Int63.of_int64 0L)
 
   let wrap v =
     let tr = !counter in
-    counter := Optint.Int63.succ !counter ;
-    {tr; v}
+    counter := Optint.Int63.succ !counter;
+    { tr; v }
 
-  let unwrap {v; _} = v
-
-  let tracker {tr; _} = tr
+  let unwrap { v; _ } = v
+  let tracker { tr; _ } = tr
 end
 
 (** Hide [t_unwrapped] (i.e. [V.t]) under [t] so that the type system ensures that
@@ -80,33 +72,26 @@ module Make_abstract (V : sig
   type t
 end) : sig
   type t
-
   type t_unwrapped = V.t
 
   val wrap : t_unwrapped -> t
-
   val unwrap : t -> t_unwrapped
 end = struct
   type t_unwrapped = V.t
-
   type t = V.t
 
   let wrap = Fun.id
-
   let unwrap = Fun.id
 end
 
 (** Seemlessly wrap [Impl] while notifying the [Recorders] of what's
     happening. *)
 module Make
-    (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX
-    )
-    (Recorders : sig
+    (Impl : Tezos_context_disk.TEZOS_CONTEXT_UNIX) (Recorders : sig
       module type RECORDER = Recorder.S with module Impl = Impl
 
       val l : (module RECORDER) list
-    end) :
-  Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX  = struct
+    end) : Tezos_context_disk.TEZOS_CONTEXT_UNIX = struct
   (** Instanciate the tree tracker *)
   module Tree_traced = Make_tracked (struct
     type t = Impl.tree
@@ -137,7 +122,7 @@ module Make
          call to [Impl]), *)
       let l = List.rev l in
       let output' = map_output output in
-      List.iter (fun f -> f output') l ;
+      List.iter (fun f -> f output') l;
       (* and return the output. *)
       output
 
@@ -162,21 +147,13 @@ module Make
     f () |> record_and_return_output
 
   type t = Context_traced.t
-
   type context = t
-
   type tree = Tree_traced.t
-
   type index = Index_abstract.t
-
   type value = Impl.value
-
   type key = Impl.key
-
   type node_key = Impl.node_key
-
   type value_key = Impl.value_key
-
   type kinded_key = Impl.kinded_key
 
   type tree_stats = Impl.tree_stats = private {
@@ -203,18 +180,13 @@ module Make
   }
 
   type error += Cannot_create_file = Impl.Cannot_create_file
-
   type error += Cannot_open_file = Impl.Cannot_open_file
-
   type error += Cannot_retrieve_commit_info = Impl.Cannot_retrieve_commit_info
-
   type error += Cannot_find_protocol = Impl.Cannot_find_protocol
-
   type error += Suspicious_file = Impl.Suspicious_file
 
   module Tree = struct
     type raw = Impl.Tree.raw
-
     type repo = Impl.Tree.repo
 
     (* [_o __ ___] - From nothing to tree *)
@@ -350,8 +322,8 @@ module Make
             Fun.id
         in
         f a b c >|= fun res ->
-        record_and_return_output () ;
-        incr entry_count ;
+        record_and_return_output ();
+        incr entry_count;
         res
       in
       let record_and_return_output =
@@ -393,12 +365,11 @@ module Make
     (* Not tracked *)
 
     let is_shallow t = Impl.Tree.is_shallow (Tree_traced.unwrap t)
-
     let make_repo = Impl.Tree.make_repo
-
     let raw_encoding = Impl.Tree.raw_encoding
 
-    let unshallow x = Impl.Tree.unshallow (Tree_traced.unwrap x) >|= Tree_traced.wrap
+    let unshallow x =
+      Impl.Tree.unshallow (Tree_traced.unwrap x) >|= Tree_traced.wrap
   end
 
   (* [_o i_ ___] - From context to tree *)
@@ -428,8 +399,8 @@ module Make
         iter_recorders (fun (module R) -> R.fold_step !entry_count !!b) Fun.id
       in
       f a b c >|= fun res ->
-      record_and_return_output () ;
-      incr entry_count ;
+      record_and_return_output ();
+      incr entry_count;
       res
     in
     let record_and_return_output =
@@ -679,24 +650,12 @@ module Make
     let* record_and_return_output =
       iter_recorders_lwt
         (fun (module R) ->
-          R.restore_context
-            ~expected_context_hash
-            ~nb_context_elements
-            ~fd
-            ~legacy
-            ~in_memory
-            ~progress_display_mode
-            x)
+          R.restore_context ~expected_context_hash ~nb_context_elements ~fd
+            ~legacy ~in_memory ~progress_display_mode x)
         Fun.id
     in
-    Impl.restore_context
-      ~expected_context_hash
-      ~nb_context_elements
-      ~fd
-      ~legacy
-      ~in_memory
-      ~progress_display_mode
-      x
+    Impl.restore_context ~expected_context_hash ~nb_context_elements ~fd ~legacy
+      ~in_memory ~progress_display_mode x
     >>= record_and_return_output
 
   (* [__ i_ __m] - From context to nothing. Mutates index *)
@@ -739,41 +698,32 @@ module Make
         (fun (module R) -> R.init ~readonly ~indexing_strategy x)
         Fun.id
     in
-    Impl.init
-      ?patch_context:local_patch_context_opt
-      ?readonly
-      ~indexing_strategy
-      ?index_log_size
-      x
+    Impl.init ?patch_context:local_patch_context_opt ?readonly
+      ~indexing_strategy ?index_log_size x
     >|= fun res -> record_and_return_output res |> Index_abstract.wrap
 
   (* Tracked with unhandled *)
 
   let length x y =
-    record_unhandled_lwt Recorder.Length @@ Impl.length (Context_traced.unwrap x) y
+    record_unhandled_lwt Recorder.Length
+    @@ Impl.length (Context_traced.unwrap x) y
 
   let tree_stats x =
-    record_unhandled_lwt Recorder.Stats @@ Impl.tree_stats (Tree_traced.unwrap x)
+    record_unhandled_lwt Recorder.Stats
+    @@ Impl.tree_stats (Tree_traced.unwrap x)
 
   let check_protocol_commit_consistency ~expected_context_hash
       ~given_protocol_hash ~author ~message ~timestamp ~test_chain_status
       ~predecessor_block_metadata_hash ~predecessor_ops_metadata_hash
       ~data_merkle_root ~parents_contexts =
     record_unhandled_lwt Recorder.Check_protocol_commit_consistency
-    @@ Impl.check_protocol_commit_consistency
-         ~expected_context_hash
-         ~given_protocol_hash
-         ~author
-         ~message
-         ~timestamp
-         ~test_chain_status
-         ~predecessor_block_metadata_hash
-         ~predecessor_ops_metadata_hash
-         ~data_merkle_root
-         ~parents_contexts
+    @@ Impl.check_protocol_commit_consistency ~expected_context_hash
+         ~given_protocol_hash ~author ~message ~timestamp ~test_chain_status
+         ~predecessor_block_metadata_hash ~predecessor_ops_metadata_hash
+         ~data_merkle_root ~parents_contexts
 
   let produce_tree_proof index kinded_key f =
-    record_unhandled_direct Recorder.Produce_tree_proof (Fun.const ()) ;
+    record_unhandled_direct Recorder.Produce_tree_proof (Fun.const ());
     let index = Index_abstract.unwrap index in
     let f t =
       f (Tree_traced.wrap t) >|= fun (t, res) -> (Tree_traced.unwrap t, res)
@@ -781,7 +731,7 @@ module Make
     Impl.produce_tree_proof index kinded_key f
 
   let verify_tree_proof proof f =
-    record_unhandled_direct Recorder.Verify_tree_proof (Fun.const ()) ;
+    record_unhandled_direct Recorder.Verify_tree_proof (Fun.const ());
     let f t =
       f (Tree_traced.wrap t) >|= fun (t, res) -> (Tree_traced.unwrap t, res)
     in
@@ -789,7 +739,7 @@ module Make
     Result.map (fun (t, res) -> (Tree_traced.wrap t, res)) res
 
   let produce_stream_proof index kinded_key f =
-    record_unhandled_direct Recorder.Produce_stream_proof (Fun.const ()) ;
+    record_unhandled_direct Recorder.Produce_stream_proof (Fun.const ());
     let index = Index_abstract.unwrap index in
     let f t =
       f (Tree_traced.wrap t) >|= fun (t, res) -> (Tree_traced.unwrap t, res)
@@ -797,7 +747,7 @@ module Make
     Impl.produce_stream_proof index kinded_key f
 
   let verify_stream_proof proof f =
-    record_unhandled_direct Recorder.Verify_stream_proof (Fun.const ()) ;
+    record_unhandled_direct Recorder.Verify_stream_proof (Fun.const ());
     let f t =
       f (Tree_traced.wrap t) >|= fun (t, res) -> (Tree_traced.unwrap t, res)
     in
@@ -805,7 +755,7 @@ module Make
     Result.map (fun (t, res) -> (Tree_traced.wrap t, res)) res
 
   let empty index =
-    record_unhandled_direct Recorder.Index_empty (Fun.const ()) ;
+    record_unhandled_direct Recorder.Index_empty (Fun.const ());
     let index = Index_abstract.unwrap index in
     let ctxt = Impl.empty index in
     Context_traced.wrap ctxt
@@ -832,13 +782,9 @@ module Make
   module Proof = Impl.Proof
 
   let index x = Impl.index (Context_traced.unwrap x) |> Index_abstract.wrap
-
   let module_tree_stats = Impl.module_tree_stats
-
   let compute_testchain_genesis = Impl.compute_testchain_genesis
-
   let compute_testchain_chain_id = Impl.compute_testchain_chain_id
-
   let get_hash_version x = Impl.get_hash_version (Context_traced.unwrap x)
 
   let set_hash_version x y =
@@ -847,12 +793,7 @@ module Make
     Context_traced.wrap z
 
   let gc x y = Impl.gc (Index_abstract.unwrap x) y
-
-  let flush x =
-    Impl.flush (Context_traced.unwrap x) >|= Context_traced.wrap
-
+  let flush x = Impl.flush (Context_traced.unwrap x) >|= Context_traced.wrap
   let is_gc_allowed x = Impl.is_gc_allowed (Index_abstract.unwrap x)
-
-  let merkle_tree_v2 x y z =
-    Impl.merkle_tree_v2 (Context_traced.unwrap x) y z
+  let merkle_tree_v2 x y z = Impl.merkle_tree_v2 (Context_traced.unwrap x) y z
 end

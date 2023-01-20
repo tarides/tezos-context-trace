@@ -3,7 +3,7 @@
  (public_name manage_stats)
  (modules manage_stats)
  (package tezos-context-replay-tools)
- (libraries cmdliner tezos-context.recording tezos-context.replay))
+ (libraries cmdliner tezos-context-recording tezos-context-replay))
 
 (executable
   (name replay)
@@ -13,7 +13,7 @@
   (libraries cmdliner
              tezos-base
              tezos-context
-             tezos-context.replay
+             tezos-context-replay
              )
   (flags (:standard  -open Tezos_base__TzPervasives))
 )
@@ -25,5 +25,5 @@
   (package tezos-context-replay-tools)
   (libraries cmdliner
 
-             tezos-context.recording
-             tezos-context.replay))
+             tezos-context-recording
+             tezos-context-replay))

@@ -28,4 +28,4 @@
 
 (** Tezos - Versioned, block indexed (key x value) store *)
 module Make (Encoding : module type of Tezos_context_encoding.Context) :
-  Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX
+  Tezos_context_disk.TEZOS_CONTEXT_UNIX

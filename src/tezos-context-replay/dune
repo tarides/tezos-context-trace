@@ -1,10 +1,10 @@
 (library
  (name tezos_context_replay)
- (public_name tezos-context.replay)
+ (public_name tezos-context-replay)
  (libraries tezos-base
             tezos-context.sigs
             tezos-context.memory
-            tezos-context.recording
+            tezos-context-recording
             cohttp-lwt-unix
             progress
             repr

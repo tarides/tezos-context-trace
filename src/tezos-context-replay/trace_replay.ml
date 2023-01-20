@@ -28,11 +28,11 @@ open Lwt.Syntax
 module TzPervasives = Tezos_base.TzPervasives
 module Def = Replay_actions_trace_definitions
 
-(** Use List from Stdlib instead of the Tezos one. *)
 module List = Stdlib.List
+(** Use List from Stdlib instead of the Tezos one. *)
 
-(** Use Option from Stdlib instead of the Tezos one. *)
 module Option = Stdlib.Option
+(** Use Option from Stdlib instead of the Tezos one. *)
 
 (** Use failwith from Stdlib instead of the Tezos one. *)
 let failwith = Stdlib.failwith
@@ -43,8 +43,8 @@ let prepare_artefacts_dir path =
     if Sys.file_exists path then ()
     else
       let path' = Filename.dirname path in
-      if path' = path then failwith "Failed to prepare result dir" ;
-      mkdir_p path' ;
+      if path' = path then failwith "Failed to prepare result dir";
+      mkdir_p path';
       Unix.mkdir path 0o755
   in
   mkdir_p path
@@ -82,31 +82,30 @@ let rec recursively_iter_files_in_directory f directory =
          else f p)
 
 let chmod_ro p = Unix.chmod p 0o444
-
 let chmod_rw p = Unix.chmod p 0o644
 
 let check_summary_mode config =
   let dir_path = config.artefacts_dir in
   let path = Filename.concat dir_path "stats_summary.json" in
   if Sys.file_exists path then
-    match Unix.access path Unix.[R_OK; W_OK] with
+    match Unix.access path Unix.[ R_OK; W_OK ] with
     | () -> ()
     | exception Unix.Unix_error (e, _, _) -> failwith (Unix.error_message e)
   else
-    match Unix.access dir_path [R_OK; W_OK] with
+    match Unix.access dir_path [ R_OK; W_OK ] with
     | () -> ()
     | exception Unix.Unix_error (e, _, _) -> failwith (Unix.error_message e)
 
 let exec_cmd cmd args =
   let cmd = Filename.quote_command cmd args in
-  Logs.info (fun l -> l "Executing %s" cmd) ;
+  Logs.info (fun l -> l "Executing %s" cmd);
   let err = Sys.command cmd in
   if err <> 0 then Fmt.failwith "Got error code %d for %s" err cmd
 
 let should_check_hashes config = config.empty_blobs = false
 
 let open_reader max_block_count path =
-  let (version, header, ops_seq) = Def.open_reader path in
+  let version, header, ops_seq = Def.open_reader path in
   let block_count =
     match max_block_count with
     | None ->
@@ -116,10 +115,8 @@ let open_reader max_block_count path =
         (* User asked for a specific [block_count] let's clip it. *)
         if max_block_count > header.block_count then
           Logs.info (fun l ->
-              l
-                "Will only replay %d blocks instead of %d"
-                header.block_count
-                max_block_count) ;
+              l "Will only replay %d blocks instead of %d" header.block_count
+                max_block_count);
         min max_block_count header.block_count
   in
   let aux (ops_seq, block_sent_count) =
@@ -130,14 +127,13 @@ let open_reader max_block_count path =
           Fmt.failwith
             "Reached the end of replayable trace while loading blocks idx %d. \
              The file was expected to contain %d blocks."
-            block_sent_count
-            header.block_count
+            block_sent_count header.block_count
       | Cons (row, ops_sec) -> Some (row, (ops_sec, block_sent_count + 1))
   in
   (version, block_count, header, Seq.unfold aux (ops_seq, 0))
 
 module Make
-    (Context : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX)
+    (Context : Tezos_context_disk.TEZOS_CONTEXT_UNIX)
     (Raw_config : Config) =
 struct
   module type RECORDER =
@@ -148,7 +144,6 @@ struct
       (Context)
       (struct
         let prefix = Raw_config.v.artefacts_dir
-
         let message = Raw_config.v.stats_trace_message
       end)
 
@@ -158,7 +153,7 @@ struct
       (struct
         module type RECORDER = RECORDER
 
-        let l = [(module Stat_recorder : RECORDER)]
+        let l = [ (module Stat_recorder : RECORDER) ]
       end)
 
   type ('a, 'b) assoc = ('a * 'b) list
@@ -180,12 +175,11 @@ struct
     hash_per_level : (int, Context_hash.t) Stdlib.Hashtbl.t;
   }
 
-  type cold_replay_state = {config : config; block_count : int}
+  type cold_replay_state = { config : config; block_count : int }
+  type cold = [ `Cold of cold_replay_state ]
+  type warm = [ `Warm of warm_replay_state ]
 
-  type cold = [`Cold of cold_replay_state]
-
-  type warm = [`Warm of warm_replay_state]
-
+  type t = [ cold | warm ]
   (** [t] is the type of the replay state.
 
       Before the very first operation is replayed (i.e. [init]) it is of type
@@ -202,7 +196,6 @@ struct
       The 3 dictionaries in [warm_replay_state] are implemented using [assoc]
       instead of [hashtbl] or [map] for performance reason -- these dictionaries
       rarely contain more that 1 element. *)
-  type t = [cold | warm]
 
   let check_hash_trace hash_trace hash_replayed =
     let hash_replayed = Context_hash.to_string hash_replayed in
@@ -218,14 +211,8 @@ struct
     let ev = rs.current_row.ops.(rs.current_event_idx) in
     Fmt.failwith
       "Cannot reproduce event idx %#d of block idx %#d (%a) expected %a for %a"
-      rs.current_block_idx
-      rs.current_block_idx
-      (Repr.pp Def.event_t)
-      ev
-      pp_res
-      expected
-      pp_res
-      result
+      rs.current_block_idx rs.current_block_idx (Repr.pp Def.event_t) ev pp_res
+      expected pp_res result
 
   (** To be called each time lib_context procudes a tree *)
   let on_rhs_tree rs (scope_end, tracker) tree =
@@ -241,14 +228,14 @@ struct
 
   (** To be called each time lib_context procudes a commit hash *)
   let on_rhs_hash rs (scope_start, scope_end, hash_trace) hash_replayed =
-    if rs.check_hashes then check_hash_trace hash_trace hash_replayed ;
+    if rs.check_hashes then check_hash_trace hash_trace hash_replayed;
     match (scope_start, scope_end) with
-    | (Def.First_instanciation, Def.Last_occurence) -> ()
-    | (First_instanciation, Will_reoccur) ->
+    | Def.First_instanciation, Def.Last_occurence -> ()
+    | First_instanciation, Will_reoccur ->
         rs.hash_corresps <- (hash_trace, hash_replayed) :: rs.hash_corresps
-    | (Reinstanciation, Last_occurence) ->
+    | Reinstanciation, Last_occurence ->
         rs.hash_corresps <- List.remove_assoc hash_trace rs.hash_corresps
-    | (Reinstanciation, Will_reoccur) ->
+    | Reinstanciation, Will_reoccur ->
         (* This may occur if 2 commits of the replay have the same hash *)
         ()
 
@@ -259,7 +246,7 @@ struct
       (* Shoudn't fail because it should follow a [save_context]. *)
     in
     if scope_end = Def.Last_occurence then
-      rs.trees <- List.remove_assoc tracker rs.trees ;
+      rs.trees <- List.remove_assoc tracker rs.trees;
     v
 
   (** To be called each time a context is passed to lib_context *)
@@ -269,18 +256,18 @@ struct
       (* Shoudn't fail because it should follow a [save_context]. *)
     in
     if scope_end = Def.Last_occurence then
-      rs.contexts <- List.remove_assoc tracker rs.contexts ;
+      rs.contexts <- List.remove_assoc tracker rs.contexts;
     v
 
   (** To be called each time a commit hash is passed to lib_context *)
   let on_lhs_hash rs (scope_start, scope_end, hash_trace) =
     match (scope_start, scope_end) with
-    | (Def.Instanciated, Def.Last_occurence) ->
+    | Def.Instanciated, Def.Last_occurence ->
         let v = List.assoc hash_trace rs.hash_corresps in
-        rs.hash_corresps <- List.remove_assoc hash_trace rs.hash_corresps ;
+        rs.hash_corresps <- List.remove_assoc hash_trace rs.hash_corresps;
         v
-    | (Instanciated, Def.Will_reoccur) -> List.assoc hash_trace rs.hash_corresps
-    | (Not_instanciated, (Def.Last_occurence | Def.Will_reoccur)) ->
+    | Instanciated, Def.Will_reoccur -> List.assoc hash_trace rs.hash_corresps
+    | Not_instanciated, (Def.Last_occurence | Def.Will_reoccur) ->
         (* This hash has not been seen yet out of a [commit] or [commit_genesis],
            this implies that [hash_trace] exist in the store prior to replay.
 
@@ -292,13 +279,13 @@ struct
     let exec_empty rs (c0, tr) =
       let c0' = on_lhs_context rs c0 in
       let tr' = Context.Tree.empty c0' in
-      on_rhs_tree rs tr tr' ;
+      on_rhs_tree rs tr tr';
       Lwt.return_unit
 
     let exec_of_value rs ((c0, v), tr) =
       let c0' = on_lhs_context rs c0 in
       let* tr' = Context.Tree.of_value c0' v in
-      on_rhs_tree rs tr tr' ;
+      on_rhs_tree rs tr tr';
       Lwt.return_unit
 
     let exec_of_raw rs (raw, tr) =
@@ -312,38 +299,38 @@ struct
       in
       let raw = conv raw in
       let tr' = Context.Tree.of_raw raw in
-      on_rhs_tree rs tr tr' ;
+      on_rhs_tree rs tr tr';
       Lwt.return_unit
 
     let exec_mem rs ((tr, k), res) =
       let tr' = on_lhs_tree rs tr in
       let* res' = Context.Tree.mem tr' k in
-      if res <> res' then bad_result rs Repr.bool res res' ;
+      if res <> res' then bad_result rs Repr.bool res res';
       Lwt.return_unit
 
     let exec_mem_tree rs ((tr, k), res) =
       let tr' = on_lhs_tree rs tr in
       let* res' = Context.Tree.mem_tree tr' k in
-      if res <> res' then bad_result rs Repr.bool res res' ;
+      if res <> res' then bad_result rs Repr.bool res res';
       Lwt.return_unit
 
     let exec_find rs ((tr, k), res) =
       let tr' = on_lhs_tree rs tr in
       let* res' = Context.Tree.find tr' k in
       let res' = Option.is_some res' in
-      if res <> res' then bad_result rs Repr.bool res res' ;
+      if res <> res' then bad_result rs Repr.bool res res';
       Lwt.return_unit
 
     let exec_is_empty rs (tr, res) =
       let tr' = on_lhs_tree rs tr in
       let res' = Context.Tree.is_empty tr' in
-      if res <> res' then bad_result rs Repr.bool res res' ;
+      if res <> res' then bad_result rs Repr.bool res res';
       Lwt.return_unit
 
     let exec_kind rs (tr, res) =
       let tr' = on_lhs_tree rs tr in
       let res' = Context.Tree.kind tr' in
-      if res <> res' then bad_result rs [%typ: [`Tree | `Value]] res res' ;
+      if res <> res' then bad_result rs [%typ: [ `Tree | `Value ]] res res';
       Lwt.return_unit
 
     let exec_hash rs (tr, ()) =
@@ -355,53 +342,50 @@ struct
       let tr0' = on_lhs_tree rs tr0 in
       let tr1' = on_lhs_tree rs tr1 in
       let res' = Context.Tree.equal tr0' tr1' in
-      if res <> res' then bad_result rs Repr.bool res res' ;
+      if res <> res' then bad_result rs Repr.bool res res';
       Lwt.return_unit
 
     let exec_to_value rs (tr, res) =
       let tr' = on_lhs_tree rs tr in
       let* res' = Context.Tree.to_value tr' in
       let res' = Option.is_some res' in
-      if res <> res' then bad_result rs Repr.bool res res' ;
+      if res <> res' then bad_result rs Repr.bool res res';
       Lwt.return_unit
 
     let exec_clear rs ((depth, tr), ()) =
       let tr' = on_lhs_tree rs tr in
-      Context.Tree.clear ?depth tr' ;
+      Context.Tree.clear ?depth tr';
       Lwt.return_unit
 
     let exec_find_tree rs ((tr0, k), tr1_opt) =
       let tr0' = on_lhs_tree rs tr0 in
       let* tr1'_opt = Context.Tree.find_tree tr0' k in
       match (tr1_opt, tr1'_opt) with
-      | (Some tr1, Some tr1') ->
-          on_rhs_tree rs tr1 tr1' ;
+      | Some tr1, Some tr1' ->
+          on_rhs_tree rs tr1 tr1';
           Lwt.return_unit
-      | (None, None) -> Lwt.return_unit
+      | None, None -> Lwt.return_unit
       | _ ->
-          bad_result
-            rs
-            Repr.bool
-            (Option.is_some tr1_opt)
+          bad_result rs Repr.bool (Option.is_some tr1_opt)
             (Option.is_some tr1'_opt)
 
     let exec_add rs ((tr0, k, v), tr1) =
       let tr0' = on_lhs_tree rs tr0 in
       let* tr1' = Context.Tree.add tr0' k v in
-      on_rhs_tree rs tr1 tr1' ;
+      on_rhs_tree rs tr1 tr1';
       Lwt.return_unit
 
     let exec_add_tree rs ((tr0, k, tr1), tr2) =
       let tr0' = on_lhs_tree rs tr0 in
       let tr1' = on_lhs_tree rs tr1 in
       let* tr2' = Context.Tree.add_tree tr0' k tr1' in
-      on_rhs_tree rs tr2 tr2' ;
+      on_rhs_tree rs tr2 tr2';
       Lwt.return_unit
 
     let exec_remove rs ((tr0, k), tr1) =
       let tr0' = on_lhs_tree rs tr0 in
       let* tr1' = Context.Tree.remove tr0' k in
-      on_rhs_tree rs tr1 tr1' ;
+      on_rhs_tree rs tr1 tr1';
       Lwt.return_unit
   end
 
@@ -409,10 +393,10 @@ struct
     let c' = on_lhs_context rs c in
     let* tr'_opt = Context.find_tree c' k in
     match (tr_opt, tr'_opt) with
-    | (Some tr, Some tr') ->
-        on_rhs_tree rs tr tr' ;
+    | Some tr, Some tr' ->
+        on_rhs_tree rs tr tr';
         Lwt.return_unit
-    | (None, None) -> Lwt.return_unit
+    | None, None -> Lwt.return_unit
     | _ ->
         bad_result rs Repr.bool (Option.is_some tr_opt) (Option.is_some tr'_opt)
 
@@ -420,26 +404,26 @@ struct
     let c0' = on_lhs_context rs c0 in
     let tr' = on_lhs_tree rs tr in
     let* c1' = Context.add_tree c0' k tr' in
-    on_rhs_context rs c1 c1' ;
+    on_rhs_context rs c1 c1';
     Lwt.return_unit
 
   let exec_mem rs ((c, k), res) =
     let c' = on_lhs_context rs c in
     let* res' = Context.mem c' k in
-    if res <> res' then bad_result rs Repr.bool res res' ;
+    if res <> res' then bad_result rs Repr.bool res res';
     Lwt.return_unit
 
   let exec_mem_tree rs ((c, k), res) =
     let c' = on_lhs_context rs c in
     let* res' = Context.mem_tree c' k in
-    if res <> res' then bad_result rs Repr.bool res res' ;
+    if res <> res' then bad_result rs Repr.bool res res';
     Lwt.return_unit
 
   let exec_find rs ((c, k), res) =
     let c' = on_lhs_context rs c in
     let* res' = Context.find c' k in
     let res' = Option.is_some res' in
-    if res <> res' then bad_result rs Repr.bool res res' ;
+    if res <> res' then bad_result rs Repr.bool res res';
     Lwt.return_unit
 
   let exec_get_protocol rs (c, ()) =
@@ -475,52 +459,52 @@ struct
   let exec_exists rs (hash, res) =
     let hash = on_lhs_hash rs hash in
     let* res' = Context.exists rs.index hash in
-    if res <> res' then bad_result rs Repr.bool res res' ;
+    if res <> res' then bad_result rs Repr.bool res res';
     Lwt.return_unit
 
   let exec_add rs ((c0, k, v), c1) =
     let c0' = on_lhs_context rs c0 in
     let* c1' = Context.add c0' k v in
-    on_rhs_context rs c1 c1' ;
+    on_rhs_context rs c1 c1';
     Lwt.return_unit
 
   let exec_remove rs ((c0, k), c1) =
     let c0' = on_lhs_context rs c0 in
     let* c1' = Context.remove c0' k in
-    on_rhs_context rs c1 c1' ;
+    on_rhs_context rs c1 c1';
     Lwt.return_unit
 
   let exec_add_protocol rs ((c0, h), c1) =
     let h = Protocol_hash.of_string_exn h in
     let c0' = on_lhs_context rs c0 in
     let* c1' = Context.add_protocol c0' h in
-    on_rhs_context rs c1 c1' ;
+    on_rhs_context rs c1 c1';
     Lwt.return_unit
 
   let exec_add_predecessor_block_metadata_hash rs ((c0, h), c1) =
     let h = Block_metadata_hash.of_string_exn h in
     let c0' = on_lhs_context rs c0 in
     let* c1' = Context.add_predecessor_block_metadata_hash c0' h in
-    on_rhs_context rs c1 c1' ;
+    on_rhs_context rs c1 c1';
     Lwt.return_unit
 
   let exec_add_predecessor_ops_metadata_hash rs ((c0, h), c1) =
     let h = Operation_metadata_list_list_hash.of_string_exn h in
     let c0' = on_lhs_context rs c0 in
     let* c1' = Context.add_predecessor_ops_metadata_hash c0' h in
-    on_rhs_context rs c1 c1' ;
+    on_rhs_context rs c1 c1';
     Lwt.return_unit
 
   let exec_add_test_chain rs ((c0, s), c1) =
     let c0' = on_lhs_context rs c0 in
     let* c1' = Context.add_test_chain c0' s in
-    on_rhs_context rs c1 c1' ;
+    on_rhs_context rs c1 c1';
     Lwt.return_unit
 
   let exec_remove_test_chain rs (c0, c1) =
     let c0' = on_lhs_context rs c0 in
     let* c1' = Context.remove_test_chain c0' in
-    on_rhs_context rs c1 c1' ;
+    on_rhs_context rs c1 c1';
     Lwt.return_unit
 
   let exec_fork_test_chain rs ((c0, protocol, expiration), c1) =
@@ -528,14 +512,14 @@ struct
     let expiration = Time.Protocol.of_seconds expiration in
     let c0' = on_lhs_context rs c0 in
     let* c1' = Context.fork_test_chain c0' ~protocol ~expiration in
-    on_rhs_context rs c1 c1' ;
+    on_rhs_context rs c1 c1';
     Lwt.return_unit
 
   let exec_checkout rs (hash, c) =
     let hash = on_lhs_hash rs hash in
     let* c' = Context.checkout rs.index hash in
     let c' = match c' with None -> failwith "Checkout failed" | Some x -> x in
-    on_rhs_context rs c c' ;
+    on_rhs_context rs c c';
     Lwt.return_unit
 
   let exec_clear_test_chain rs (chain_id, ()) =
@@ -608,7 +592,7 @@ struct
       }
 
   let exec_commit_genesis rs ((chain_id, time, protocol), ()) =
-    Stat_recorder.set_stat_specs (specs_of_row rs.current_row) ;
+    Stat_recorder.set_stat_specs (specs_of_row rs.current_row);
     let chain_id = Chain_id.of_string_exn chain_id in
     let time = Time.Protocol.of_seconds time in
     let protocol = Protocol_hash.of_string_exn protocol in
@@ -622,35 +606,35 @@ struct
       | ev -> Fmt.failwith "Got %a at %s" (Repr.pp Def.event_t) ev __LOC__
     in
 
-    on_rhs_hash rs hash hash' ;
+    on_rhs_hash rs hash hash';
     Lwt.return_unit
 
-  module Event_sink_for_gc (X : sig val rs : warm_replay_state end)= struct
+  module Event_sink_for_gc (X : sig
+    val rs : warm_replay_state
+  end) =
+  struct
     type t = unit
 
     let uri_scheme = "context-replay"
-
     let configure _ = Lwt.return (Ok ())
 
     let handle (type a) () m ?section (_v : unit -> a) =
-      ignore section ;
+      ignore section;
       let module M = (val m : Internal_event.EVENT_DEFINITION with type t = a)
       in
       let () =
         match M.name with
         | "starting_gc" ->
-           Fmt.epr "gc_started                    \n%!";
-           Stat_recorder.report_gc_start ()
-        | "ending_gc" -> (
+            Fmt.epr "gc_started                    \n%!";
+            Stat_recorder.report_gc_start ()
+        | "ending_gc" ->
             Fmt.epr "gc_ended                     \n%!";
             let open Irmin_pack_unix.Stats in
             let latest_gc = (get ()).latest_gc |> Latest_gc.export in
             (match latest_gc with
             | None -> assert false
             | Some s -> Stat_recorder.report_gc s);
-            if X.rs.config.stop_after_first_gc then
-              X.rs.early_stop <- true
-        )
+            if X.rs.config.stop_after_first_gc then X.rs.early_stop <- true
         | "gc_launch_failure" -> ()
         | "gc_failure" -> assert false
         | _ -> assert false
@@ -662,11 +646,11 @@ struct
 
   let exec_commit rs ((time, message, c), hash) =
     let level = rs.current_row.level in
-    Stat_recorder.set_stat_specs (specs_of_row rs.current_row) ;
+    Stat_recorder.set_stat_specs (specs_of_row rs.current_row);
     let time = Time.Protocol.of_seconds time in
     let c = on_lhs_context rs c in
     let* hash' = Context.commit ~time ?message c in
-    on_rhs_hash rs hash hash' ;
+    on_rhs_hash rs hash hash';
     Stdlib.Hashtbl.add rs.hash_per_level level hash';
 
     let gc_target_opt =
@@ -675,15 +659,14 @@ struct
       | `Level i -> Stdlib.Hashtbl.find_opt rs.hash_per_level i
       | `Hash h -> Some h
     in
-    match rs.config.gc_when, gc_target_opt with
+    match (rs.config.gc_when, gc_target_opt) with
     | `Never, _ -> Lwt.return_unit
     | `Every i, Some target when rs.current_block_idx mod i = 0 ->
-       Context.gc rs.index target
+        Context.gc rs.index target
     | `Every _, _ -> Lwt.return_unit
-    | `Level lvl, Some target when lvl = level ->
-       Context.gc rs.index target
+    | `Level lvl, Some target when lvl = level -> Context.gc rs.index target
     | `Level lvl, None when lvl = level ->
-       Fmt.failwith "Should GC now but can't find target"
+        Fmt.failwith "Should GC now but can't find target"
     | `Level _, _ -> Lwt.return_unit
 
   let rec exec_init (rs : cold_replay_state) (row : Def.row) (readonly, ()) =
@@ -699,11 +682,8 @@ struct
     in
     let store_dir = Filename.concat rs.config.artefacts_dir "store" in
     let* index =
-      Context.init
-        ~indexing_strategy:Raw_config.v.indexing_strategy
-        ~readonly
-        ?patch_context
-        store_dir
+      Context.init ~indexing_strategy:Raw_config.v.indexing_strategy ~readonly
+        ?patch_context store_dir
     in
     let latest_gc =
       Irmin_pack_unix.Stats.((get ()).latest_gc |> Latest_gc.export)
@@ -728,38 +708,41 @@ struct
     in
     let* () =
       let open Internal_event in
-      All_sinks.register (module Event_sink_for_gc (struct let rs = rs end)) ;
+      All_sinks.register
+        (module Event_sink_for_gc (struct
+          let rs = rs
+        end));
       let+ res = All_sinks.activate (Uri.of_string "context-replay://") in
       match res with Error _err -> assert false | Ok () -> ()
     in
-    rsref := Some rs ;
+    rsref := Some rs;
     Lwt.return rs
 
   and exec_patch_context rs c' =
     (match rs.current_row.ops.(rs.current_event_idx) with
     | Commit_genesis_end _ | Commit_genesis_start _ -> ()
-    | ev -> Fmt.failwith "Got %a at %s" (Repr.pp Def.event_t) ev __LOC__) ;
+    | ev -> Fmt.failwith "Got %a at %s" (Repr.pp Def.event_t) ev __LOC__);
 
-    assert (rs.recursion_depth = 0) ;
-    rs.recursion_depth <- 1 ;
+    assert (rs.recursion_depth = 0);
+    rs.recursion_depth <- 1;
 
     let* () =
-      rs.current_event_idx <- rs.current_event_idx + 1 ;
+      rs.current_event_idx <- rs.current_event_idx + 1;
       match rs.current_row.ops.(rs.current_event_idx) with
       | Def.Patch_context_enter c ->
-          on_rhs_context rs c c' ;
+          on_rhs_context rs c c';
           exec_next_events rs
       | ev -> Fmt.failwith "Got %a at %s" (Repr.pp Def.event_t) ev __LOC__
     in
 
-    assert (rs.recursion_depth = 1) ;
-    rs.recursion_depth <- 0 ;
+    assert (rs.recursion_depth = 1);
+    rs.recursion_depth <- 0;
 
     match rs.current_row.ops.(rs.current_event_idx) with
     | Patch_context_exit (c, d) ->
         let _c' : Context.t = on_lhs_context rs c in
         let d' = on_lhs_context rs d in
-        rs.current_event_idx <- rs.current_event_idx + 1 ;
+        rs.current_event_idx <- rs.current_event_idx + 1;
         Lwt.return (Ok d')
     | ev -> Fmt.failwith "Got %a at %s" (Repr.pp Def.event_t) ev __LOC__
 
@@ -768,26 +751,26 @@ struct
     let f _k tr' () = exec_fold_step rs tr' in
     let* () = Context.fold ?depth ~order c k ~init:() ~f in
 
-    rs.current_event_idx <- rs.current_event_idx + 1 ;
+    rs.current_event_idx <- rs.current_event_idx + 1;
     match rs.current_row.ops.(rs.current_event_idx) with
     | Fold_end -> Lwt.return_unit
     | ev -> Fmt.failwith "Got %a at %s" (Repr.pp Def.event_t) ev __LOC__
 
   and exec_fold_step rs tr' =
     let recursion_depth = rs.recursion_depth in
-    rs.recursion_depth <- recursion_depth + 1 ;
+    rs.recursion_depth <- recursion_depth + 1;
 
     let* () =
-      rs.current_event_idx <- rs.current_event_idx + 1 ;
+      rs.current_event_idx <- rs.current_event_idx + 1;
       match rs.current_row.ops.(rs.current_event_idx) with
       | Def.Fold_step_enter tr ->
-          on_rhs_tree rs tr tr' ;
+          on_rhs_tree rs tr tr';
           exec_next_events rs
       | ev -> Fmt.failwith "Got %a at %s" (Repr.pp Def.event_t) ev __LOC__
     in
 
-    assert (rs.recursion_depth = recursion_depth + 1) ;
-    rs.recursion_depth <- recursion_depth ;
+    assert (rs.recursion_depth = recursion_depth + 1);
+    rs.recursion_depth <- recursion_depth;
 
     match rs.current_row.ops.(rs.current_event_idx) with
     | Fold_step_exit tr ->
@@ -796,18 +779,18 @@ struct
     | ev -> Fmt.failwith "Got %a at %s" (Repr.pp Def.event_t) ev __LOC__
 
   and exec_next_events rs =
-    rs.current_event_idx <- rs.current_event_idx + 1 ;
+    rs.current_event_idx <- rs.current_event_idx + 1;
     let events = rs.current_row.Def.ops in
     let commit_idx = Array.length events - 1 in
     let i = rs.current_event_idx in
     let ev = events.(i) in
     match ev with
     | Def.Commit data ->
-        assert (rs.recursion_depth = 0) ;
-        assert (i = commit_idx) ;
+        assert (rs.recursion_depth = 0);
+        assert (i = commit_idx);
         exec_commit rs data
     | Commit_genesis_start data ->
-        assert (rs.recursion_depth = 0) ;
+        assert (rs.recursion_depth = 0);
         exec_commit_genesis rs data
     | Fold_start ((x, x'), y, z) ->
         let* () = exec_fold rs x x' y z in
@@ -822,10 +805,10 @@ struct
         let* () = exec_simple_event rs ev in
         (exec_next_events [@tailcall]) rs
 
-  let exec_block : [< t] -> _ -> _ -> warm Lwt.t =
+  let exec_block : [< t ] -> _ -> _ -> warm Lwt.t =
    fun t row block_idx ->
     let exec_very_first_event rs =
-      assert (block_idx = 0) ;
+      assert (block_idx = 0);
       let events = row.Def.ops in
       let ev = events.(0) in
       match ev with
@@ -835,20 +818,17 @@ struct
     match t with
     | `Cold rs ->
         Logs.info (fun l ->
-            l
-              "exec block idx:%#6d, level:%#d, events:%#7d"
-              block_idx
-              row.Def.level
-              (Array.length row.Def.ops)) ;
+            l "exec block idx:%#6d, level:%#d, events:%#7d" block_idx
+              row.Def.level (Array.length row.Def.ops));
         let* t = exec_very_first_event rs in
         let* () = exec_next_events t in
         Lwt.return (`Warm t)
     | `Warm (rs : warm_replay_state) ->
-      let unusual_transition =
+        let unusual_transition =
           List.length rs.trees > 0
           || List.length rs.contexts > 0
           || List.length rs.hash_corresps <> 1
-      in
+        in
         if
           block_idx mod 250 = 0
           || block_idx + 1 = rs.block_count
@@ -859,28 +839,20 @@ struct
               let s =
                 if unusual_transition then
                   Printf.sprintf "tree/context/hash caches:%d/%d/%d"
-                    (List.length rs.trees)
-                    (List.length rs.contexts)
+                    (List.length rs.trees) (List.length rs.contexts)
                     (List.length rs.hash_corresps)
                 else ""
               in
-              l
-                "exec block idx:%#6d, level:%#d, events:%#7d %s"
-                block_idx
-                row.Def.level
-                (Array.length row.Def.ops)
-                s
-                ) ;
-        rs.current_block_idx <- block_idx ;
-        rs.current_row <- row ;
-        rs.current_event_idx <- -1 ;
+              l "exec block idx:%#6d, level:%#d, events:%#7d %s" block_idx
+                row.Def.level (Array.length row.Def.ops) s);
+        rs.current_block_idx <- block_idx;
+        rs.current_row <- row;
+        rs.current_event_idx <- -1;
         let* () = exec_next_events rs in
         Lwt.return (`Warm rs)
 
   let exec_blocks (rs : cold_replay_state) row_seq : warm Lwt.t =
-    with_progress_bar
-      ~message:"Replaying trace"
-      ~n:rs.block_count
+    with_progress_bar ~message:"Replaying trace" ~n:rs.block_count
       ~unit:"commits"
     @@ fun prog ->
     let rec aux t commit_idx row_seq =
@@ -888,10 +860,9 @@ struct
       | Seq.Nil -> (
           match t with `Cold _ -> assert false | `Warm _ as t -> Lwt.return t)
       | Cons (row, row_seq) ->
-         let* (`Warm rs as t) = exec_block t row commit_idx in
-          prog 1 ;
-          if rs.early_stop then Lwt.return t
-          else aux t (commit_idx + 1) row_seq
+          let* (`Warm rs as t) = exec_block t row commit_idx in
+          prog 1;
+          if rs.early_stop then Lwt.return t else aux t (commit_idx + 1) row_seq
     in
     aux (`Cold rs) 0 row_seq
 
@@ -899,64 +870,58 @@ struct
     let check_hashes = should_check_hashes Raw_config.v in
     let store_dir = Filename.concat Raw_config.v.artefacts_dir "store" in
     Logs.info (fun l ->
-        l
-          "Will %scheck commit hashes against reference."
-          (if check_hashes then "" else "NOT ")) ;
+        l "Will %scheck commit hashes against reference."
+          (if check_hashes then "" else "NOT "));
     Logs.info (fun l ->
-        l
-          "Will %skeep irmin store at the end."
-          (if Raw_config.v.keep_store then "" else "NOT ")) ;
+        l "Will %skeep irmin store at the end."
+          (if Raw_config.v.keep_store then "" else "NOT "));
     Logs.info (fun l ->
-        l
-          "Will %skeep stat trace at the end."
-          (if Raw_config.v.keep_stats_trace then "" else "NOT ")) ;
+        l "Will %skeep stat trace at the end."
+          (if Raw_config.v.keep_stats_trace then "" else "NOT "));
     Logs.info (fun l ->
-        l
-          "Will %ssave a custom message in stats trace."
-          (if Raw_config.v.stats_trace_message <> None then "" else "NOT ")) ;
+        l "Will %ssave a custom message in stats trace."
+          (if Raw_config.v.stats_trace_message <> None then "" else "NOT "));
     Logs.info (fun l ->
-        l
-          "Will %screate a summary file.\nWill %sprint a summary result."
+        l "Will %screate a summary file.\nWill %sprint a summary result."
           (if Raw_config.v.no_summary then "NOT " else " ")
-          (if Raw_config.v.no_pp_summary then "NOT " else "")) ;
-    prepare_artefacts_dir Raw_config.v.artefacts_dir ;
+          (if Raw_config.v.no_pp_summary then "NOT " else ""));
+    prepare_artefacts_dir Raw_config.v.artefacts_dir;
     if Sys.file_exists store_dir then
-      invalid_arg "Can't open irmin-pack store. Destination already exists" ;
+      invalid_arg "Can't open irmin-pack store. Destination already exists";
 
-    if not Raw_config.v.no_summary then check_summary_mode Raw_config.v ;
+    if not Raw_config.v.no_summary then check_summary_mode Raw_config.v;
 
-    Logs.info (fun l -> l "Will use the Tezos GC to replay the trace.") ;
+    Logs.info (fun l -> l "Will use the Tezos GC to replay the trace.");
     let default_allocation_policy = 2 in
     let current = Gc.get () in
-    Gc.set {current with allocation_policy = default_allocation_policy} ;
+    Gc.set { current with allocation_policy = default_allocation_policy };
 
     (* 1. First open the replayable trace, *)
-    let (_, block_count, _, row_seq) =
+    let _, block_count, _, row_seq =
       open_reader Raw_config.v.block_count Raw_config.v.replayable_trace_path
     in
-    let config = {Raw_config.v with block_count = Some block_count} in
+    let config = { Raw_config.v with block_count = Some block_count } in
 
     (match config.startup_store_type with
     | `Fresh -> ()
     | `Copy_from origin ->
         (* 2 - then make a copy of the reference RO store, *)
-        exec_cmd "cp" ["-r"; origin; store_dir] ;
-        recursively_iter_files_in_directory chmod_rw store_dir) ;
+        exec_cmd "cp" [ "-r"; origin; store_dir ];
+        recursively_iter_files_in_directory chmod_rw store_dir);
     (* 4 - now launch the full replay, *)
-    let* (`Warm replay_state) = exec_blocks {config; block_count} row_seq in
+    let* (`Warm replay_state) = exec_blocks { config; block_count } row_seq in
 
     (* 5 - and close the various things open, *)
-    Logs.info (fun l -> l "Closing repo...") ;
+    Logs.info (fun l -> l "Closing repo...");
     let+ () = Context.close replay_state.index in
 
     let res =
       if not config.no_summary then (
-        Logs.info (fun l -> l "Computing summary...") ;
+        Logs.info (fun l -> l "Computing summary...");
         (* 6 - compute the summary, *)
         let stats_path = Stat_recorder.get_stat_path () in
         Some
-          (Trace_stats_summary.summarise
-             ~info:(false, block_count, true)
+          (Trace_stats_summary.summarise ~info:(false, block_count, true)
              stats_path))
       else None
     in
@@ -964,23 +929,23 @@ struct
     (* 7 - remove or preserve the various temporary files, *)
     let stats_path = Stat_recorder.get_stat_path () in
     if config.keep_stats_trace then (
-      Logs.info (fun l -> l "Stats trace kept at %s" stats_path) ;
+      Logs.info (fun l -> l "Stats trace kept at %s" stats_path);
       chmod_ro stats_path)
-    else Sys.remove stats_path ;
+    else Sys.remove stats_path;
     if config.keep_store then (
       Logs.info (fun l ->
-          l "Store kept at %s" (Filename.concat config.artefacts_dir "store")) ;
+          l "Store kept at %s" (Filename.concat config.artefacts_dir "store"));
       recursively_iter_files_in_directory chmod_ro store_dir)
-    else exec_cmd "rm" ["-rf"; store_dir] ;
+    else exec_cmd "rm" [ "-rf"; store_dir ];
 
     match res with
     | Some summary ->
         (* 8 - and finally save and print the summary. *)
         let p = Filename.concat config.artefacts_dir "stats_summary.json" in
-        Trace_stats_summary.save_to_json summary p ;
+        Trace_stats_summary.save_to_json summary p;
         if not config.no_pp_summary then
           Logs.info (fun l ->
-              l "\n%a" (Trace_stats_summary_pp.pp 5) ([""], [summary]))
+              l "\n%a" (Trace_stats_summary_pp.pp 5) ([ "" ], [ summary ]))
         else
           Logs.info (fun l ->
               l "No summary print as --no-pp-summary flag is true.")

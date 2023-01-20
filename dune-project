@@ -4,3 +4,9 @@
 
 (package
 (name tezos-context-replay-tools))
+
+(package
+(name tezos-context-recording))
+
+(package
+(name tezos-context-replay))

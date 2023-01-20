@@ -28,7 +28,7 @@ module Def = Stats_trace_definition
 
 (** Stats trace writer, to be instanciated from replay or from tezos-node using
     [Make] (below). *)
-module Writer (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) = struct
+module Writer (Impl : Tezos_context_disk.TEZOS_CONTEXT_UNIX) = struct
   let is_darwin =
     try
       match Unix.open_process_in "uname" |> input_line with
@@ -36,8 +36,6 @@ module Writer (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) = struct
       | _ -> false
     with Unix.Unix_error _ -> false
 
-  (** Imperative stats trace collector. It is optimised to minimise the number
-      allocated ocaml blocks. *)
   type t = {
     writer : Def.writer;
     store_path : string;
@@ -47,6 +45,8 @@ module Writer (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) = struct
     mutable bag_before : Def.bag_of_stats;
     mutable store_before : Def.store_before;
   }
+  (** Imperative stats trace collector. It is optimised to minimise the number
+      allocated ocaml blocks. *)
 
   let ocaml_gc_control () =
     let open Gc in
@@ -134,12 +134,12 @@ module Writer (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) = struct
             | [] -> acc
             | hd :: tl ->
                 if List.mem ~equal:Float.equal hd prev_merge_durations then (
-                  assert (acc = []) (* No oldie after a newies *) ;
+                  assert (acc = []) (* No oldie after a newies *);
                   aux acc tl)
                 else aux ((hd /. 1e6) :: acc) tl
           in
           let l = aux [] v.merge_durations in
-          assert (l <> []) (* At least one newie *) ;
+          assert (l <> []) (* At least one newie *);
           l
       in
       Def.
@@ -201,7 +201,17 @@ module Writer (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) = struct
       in
       let maxrss = if is_darwin then Int64.div maxrss 1000L else maxrss in
       Def.
-        {utime; stime; maxrss; minflt; majflt; inblock; oublock; nvcsw; nivcsw}
+        {
+          utime;
+          stime;
+          maxrss;
+          minflt;
+          majflt;
+          inblock;
+          oublock;
+          nvcsw;
+          nivcsw;
+        }
 
     let now () =
       Mtime_clock.now () |> Mtime.to_uint64_ns |> Int64.to_float |> ( *. ) 1e-9
@@ -221,18 +231,18 @@ module Writer (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) = struct
   end
 
   let dummy_store_after =
-    Def.{watched_nodes_length = List.map (fun _ -> Float.nan) watched_nodes}
+    Def.{ watched_nodes_length = List.map (fun _ -> Float.nan) watched_nodes }
 
   let dummy_store_before =
-    Def.{nodes = 0; leafs = 0; skips = 0; depth = 0; width = 0}
+    Def.{ nodes = 0; leafs = 0; skips = 0; depth = 0; width = 0 }
 
   let create_store_before context =
-    let+ Impl.{nodes; leafs; skips; depth; width} =
+    let+ Impl.{ nodes; leafs; skips; depth; width } =
       (* This call directly targets [Impl], it will not be recorded *)
       let* tree = Impl.find_tree context [] in
       match tree with None -> assert false | Some t -> Impl.tree_stats t
     in
-    Def.{nodes; leafs; skips; depth; width}
+    Def.{ nodes; leafs; skips; depth; width }
 
   let create_store_after context =
     let* watched_nodes_length =
@@ -246,20 +256,19 @@ module Writer (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) = struct
             (fun _exn -> Lwt.return Float.nan))
         Def.step_list_per_watched_node
     in
-    Lwt.return Def.{watched_nodes_length}
+    Lwt.return Def.{ watched_nodes_length }
 
   module Direct_timer = struct
     let begin_ t = t.direct_timer <- Mtime_clock.counter ()
-
-    let end_ {direct_timer; _} = Mtime_clock.count direct_timer
+    let end_ { direct_timer; _ } = Mtime_clock.count direct_timer
   end
 
   module Recursive_timer = struct
     let begin_ t =
-      Direct_timer.begin_ t ;
+      Direct_timer.begin_ t;
       t.recursive_timers <- Mtime.Span.zero :: t.recursive_timers
 
-    let exit ({recursive_timers; _} as t) =
+    let exit ({ recursive_timers; _ } as t) =
       match recursive_timers with
       | [] -> assert false
       | hd :: tl ->
@@ -267,11 +276,11 @@ module Writer (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) = struct
 
     let enter = Direct_timer.begin_
 
-    let end_ ({recursive_timers; _} as t) =
+    let end_ ({ recursive_timers; _ } as t) =
       match recursive_timers with
       | [] -> assert false
       | hd :: tl ->
-          t.recursive_timers <- tl ;
+          t.recursive_timers <- tl;
           Mtime.Span.add hd (Direct_timer.end_ t)
   end
 
@@ -295,8 +304,7 @@ module Writer (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) = struct
           runtime_parameters = Sys.runtime_parameters ();
           ocaml_version = Sys.ocaml_version;
           initial_stats =
-            Bag_of_stats.create
-              store_path
+            Bag_of_stats.create store_path
               Index.Stats.((get ()).merge_durations);
         }
     in
@@ -310,10 +318,8 @@ module Writer (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) = struct
       store_before = dummy_store_before;
     }
 
-  let flush {writer; _} = Def.flush writer
-
-  let close {writer; _} = Def.close writer
-
+  let flush { writer; _ } = Def.flush writer
+  let close { writer; _ } = Def.close writer
   let direct_op_begin = Direct_timer.begin_
 
   let direct_op_end t short_op =
@@ -324,9 +330,7 @@ module Writer (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) = struct
     Def.append_row t.writer (`Frequent_op (short_op, duration))
 
   let recursive_op_begin = Recursive_timer.begin_
-
   let recursive_op_exit = Recursive_timer.exit
-
   let recursive_op_enter = Recursive_timer.enter
 
   let recursive_op_end t short_op =
@@ -337,29 +341,28 @@ module Writer (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) = struct
     Def.append_row t.writer (`Frequent_op (short_op, duration))
 
   let commit_begin t ?context () =
-    assert (List.length t.recursive_timers = 0) ;
+    assert (List.length t.recursive_timers = 0);
     let stats_before =
       Bag_of_stats.create t.store_path t.prev_merge_durations
     in
-    t.prev_merge_durations <- Index.Stats.((get ()).merge_durations) ;
+    t.prev_merge_durations <- Index.Stats.((get ()).merge_durations);
     let+ store_before =
       match context with
       | None -> Lwt.return @@ dummy_store_before
       | Some context -> create_store_before context
     in
-    Recursive_timer.begin_ t ;
-    t.bag_before <- stats_before ;
+    Recursive_timer.begin_ t;
+    t.bag_before <- stats_before;
     t.store_before <- store_before
 
   let patch_context_begin = Recursive_timer.exit
-
   let patch_context_end = Recursive_timer.enter
 
   let commit_end t ?specs ?context () =
     let duration = Recursive_timer.end_ t in
     let duration = duration |> Mtime.Span.to_s |> Int32.bits_of_float in
     let stats_after = Bag_of_stats.create t.store_path t.prev_merge_durations in
-    t.prev_merge_durations <- Index.Stats.((get ()).merge_durations) ;
+    t.prev_merge_durations <- Index.Stats.((get ()).merge_durations);
     let+ store_after =
       match context with
       | None -> Lwt.return @@ dummy_store_after
@@ -380,11 +383,11 @@ module Writer (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) = struct
     Def.append_row t.writer op
 
   let stats_begin t =
-    Direct_timer.begin_ t ;
+    Direct_timer.begin_ t;
     let stats_before =
       Bag_of_stats.create t.store_path t.prev_merge_durations
     in
-    t.prev_merge_durations <- Index.Stats.((get ()).merge_durations) ;
+    t.prev_merge_durations <- Index.Stats.((get ()).merge_durations);
     t.bag_before <- stats_before
 
   let stats_end t tag =
@@ -392,36 +395,35 @@ module Writer (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) = struct
       Direct_timer.end_ t |> Mtime.Span.to_s |> Int32.bits_of_float
     in
     let stats_after = Bag_of_stats.create t.store_path t.prev_merge_durations in
-    t.prev_merge_durations <- Index.Stats.((get ()).merge_durations) ;
+    t.prev_merge_durations <- Index.Stats.((get ()).merge_durations);
     let op =
       match tag with
       | `Close_op ->
           `Close
-            Def.Stats_op.{duration; before = t.bag_before; after = stats_after}
+            Def.Stats_op.
+              { duration; before = t.bag_before; after = stats_after }
       | `Dump_context_op ->
           `Dump_context
-            Def.Stats_op.{duration; before = t.bag_before; after = stats_after}
+            Def.Stats_op.
+              { duration; before = t.bag_before; after = stats_after }
     in
 
     Def.append_row t.writer op
 
-  let add_gc_start_row t = Def.append_row t.writer (`Gc_start)
+  let add_gc_start_row t = Def.append_row t.writer `Gc_start
   let add_gc_row t stats = Def.append_row t.writer (`Gc_finalised stats)
 end
 
 module Make
-    (Impl : Tezos_context_disk_sigs.TEZOS_CONTEXT_UNIX) (Trace_config : sig
+    (Impl : Tezos_context_disk.TEZOS_CONTEXT_UNIX) (Trace_config : sig
       val prefix : string
-
       val message : string option
     end) =
 struct
   module Writer = Writer (Impl)
 
   let path = ref None
-
   let specs = ref None
-
   let writer = ref None
 
   let get_stat_path () =
@@ -438,8 +440,8 @@ struct
     | None ->
         let filename = Printf.sprintf "stats_trace.%d.trace" (Unix.getpid ()) in
         let local_path = Misc.prepare_trace_file Trace_config.prefix filename in
-        path := Some local_path ;
-        Logs.app (fun l -> l "Creating %s" local_path) ;
+        path := Some local_path;
+        Logs.app (fun l -> l "Creating %s" local_path);
         let config =
           Def.
             {
@@ -465,122 +467,118 @@ struct
     module Src = Irmin_pack_unix.Stats.Latest_gc
     module Dst = Def.Gc
 
-    let convert_duration Src.{ wall; sys; user } =
-      Dst.{ wall; sys; user }
+    let convert_duration Src.{ wall; sys; user } = Dst.{ wall; sys; user }
 
-    let convert_rusage Src.{
-        maxrss ;
-        minflt ;
-        majflt ;
-        inblock ;
-        oublock ;
-        nvcsw ;
-        nivcsw ;
-      } =
-      Dst.{
-        maxrss ;
-        minflt ;
-        majflt ;
-        inblock ;
-        oublock ;
-        nvcsw ;
-        nivcsw ;
-      }
+    let convert_rusage
+        Src.{ maxrss; minflt; majflt; inblock; oublock; nvcsw; nivcsw } =
+      Dst.{ maxrss; minflt; majflt; inblock; oublock; nvcsw; nivcsw }
 
-    let convert_ocaml_gc Src.{
-        minor_words ;
-        promoted_words ;
-        major_words ;
-        minor_collections ;
-        major_collections ;
-        heap_words ;
-        compactions ;
-        top_heap_words ;
-        stack_size ;
-      } =
-      Def.{
-        minor_words ;
-        promoted_words ;
-        major_words ;
-        minor_collections ;
-        major_collections ;
-        heap_words ;
-        compactions ;
-        top_heap_words ;
-        stack_size ;
+    let convert_ocaml_gc
+        Src.
+          {
+            minor_words;
+            promoted_words;
+            major_words;
+            minor_collections;
+            major_collections;
+            heap_words;
+            compactions;
+            top_heap_words;
+            stack_size;
+          } =
+      Def.
+        {
+          minor_words;
+          promoted_words;
+          major_words;
+          minor_collections;
+          major_collections;
+          heap_words;
+          compactions;
+          top_heap_words;
+          stack_size;
         }
 
-    let convert_index Irmin_pack_unix.Stats.Index.{
-        bytes_read ;
-        nb_reads ;
-        bytes_written ;
-        nb_writes ;
-        _
-      } = Dst.{
-        bytes_read ;
-        nb_reads ;
-        bytes_written ;
-        nb_writes ;
-      }
+    let convert_index
+        Irmin_pack_unix.Stats.Index.
+          { bytes_read; nb_reads; bytes_written; nb_writes; _ } =
+      Dst.{ bytes_read; nb_reads; bytes_written; nb_writes }
 
-    let convert_pack_store Irmin_pack_unix.Stats.Pack_store.{
-        appended_hashes ;
-        appended_offsets ;
-        total ;
-        from_staging ;
-        from_lru ;
-        from_pack_direct ;
-        from_pack_indexed ;
-          } = Dst.{
-        appended_hashes ;
-        appended_offsets ;
-        total ;
-        from_staging ;
-        from_lru ;
-        from_pack_direct ;
-        from_pack_indexed ;
+    let convert_pack_store
+        Irmin_pack_unix.Stats.Pack_store.
+          {
+            appended_hashes;
+            appended_offsets;
+            total;
+            from_staging;
+            from_lru;
+            from_pack_direct;
+            from_pack_indexed;
+          } =
+      Dst.
+        {
+          appended_hashes;
+          appended_offsets;
+          total;
+          from_staging;
+          from_lru;
+          from_pack_direct;
+          from_pack_indexed;
         }
 
-    let convert_inode Irmin_pack.Stats.Inode.{
-        inode_add ;
-        inode_remove ;
-        inode_of_seq ;
-        inode_of_raw ;
-        inode_rec_add ;
-        inode_rec_remove ;
-        inode_to_binv ;
-        inode_decode_bin ;
-        inode_encode_bin ;
-      } = Dst.{
-        inode_add ;
-        inode_remove ;
-        inode_of_seq ;
-        inode_of_raw ;
-        inode_rec_add ;
-        inode_rec_remove ;
-        inode_to_binv ;
-        inode_decode_bin ;
-        inode_encode_bin ;
-      }
+    let convert_inode
+        Irmin_pack.Stats.Inode.
+          {
+            inode_add;
+            inode_remove;
+            inode_of_seq;
+            inode_of_raw;
+            inode_rec_add;
+            inode_rec_remove;
+            inode_to_binv;
+            inode_decode_bin;
+            inode_encode_bin;
+          } =
+      Dst.
+        {
+          inode_add;
+          inode_remove;
+          inode_of_seq;
+          inode_of_raw;
+          inode_rec_add;
+          inode_rec_remove;
+          inode_to_binv;
+          inode_decode_bin;
+          inode_encode_bin;
+        }
 
-    let convert_step Src.{
-        duration;
-        rusage;
-        ocaml_gc;
-        index;
-        pack_store;
-        inode;
-      } =
-      Dst.{
-        duration = convert_duration duration;
-        rusage = convert_rusage rusage;
-        ocaml_gc = convert_ocaml_gc ocaml_gc;
-        index  = convert_index index;
-        pack_store  = convert_pack_store pack_store;
-        inode = convert_inode inode;
-      }
+    let convert_step
+        Src.{ duration; rusage; ocaml_gc; index; pack_store; inode } =
+      Dst.
+        {
+          duration = convert_duration duration;
+          rusage = convert_rusage rusage;
+          ocaml_gc = convert_ocaml_gc ocaml_gc;
+          index = convert_index index;
+          pack_store = convert_pack_store pack_store;
+          inode = convert_inode inode;
+        }
 
-    let convert_worker Src.{
+    let convert_worker
+        Src.
+          {
+            initial_maxrss;
+            initial_heap_words;
+            initial_top_heap_words;
+            initial_stack_size;
+            steps;
+            files;
+            objects_traversed;
+            suffix_transfers;
+          } =
+      let steps = List.map (fun (k, v) -> (k, convert_step v)) steps in
+      Dst.
+        {
           initial_maxrss;
           initial_heap_words;
           initial_top_heap_words;
@@ -589,20 +587,24 @@ struct
           files;
           objects_traversed;
           suffix_transfers;
-        } =
-      let steps = List.map (fun (k, v) -> k, convert_step v) steps in
-      Dst.{
-        initial_maxrss;
-        initial_heap_words;
-        initial_top_heap_words;
-        initial_stack_size;
-        steps;
-        files;
-        objects_traversed;
-        suffix_transfers;
         }
 
-    let convert Src.{
+    let convert
+        Src.
+          {
+            generation;
+            commit_offset;
+            before_suffix_start_offset;
+            before_suffix_end_offset;
+            after_suffix_start_offset;
+            after_suffix_end_offset;
+            steps;
+            worker;
+          } =
+      let steps = List.map (fun (k, v) -> (k, convert_duration v)) steps in
+      let worker = convert_worker worker in
+      Dst.
+        {
           generation;
           commit_offset;
           before_suffix_start_offset;
@@ -611,19 +613,7 @@ struct
           after_suffix_end_offset;
           steps;
           worker;
-        } =
-      let steps = List.map (fun (k, v) -> k, convert_duration v) steps in
-      let worker = convert_worker worker in
-      Dst.{
-        generation;
-        commit_offset;
-        before_suffix_start_offset;
-        before_suffix_end_offset;
-        after_suffix_start_offset;
-        after_suffix_end_offset;
-        steps;
-        worker;
-      }
+        }
   end
 
   let report_gc_start () = Writer.add_gc_start_row (get_writer ())
@@ -650,236 +640,226 @@ struct
   (* FIXME: wait for Repr modification to support size in like *)
 
   type tree = Impl.tree * varint63
-
   type context = Impl.context * varint63
 
   let direct_op_begin () = Writer.direct_op_begin (get_writer ())
-
   let direct_op_end tag = Writer.direct_op_end (get_writer ()) tag
-
   let close_begin () = Writer.stats_begin (get_writer ())
-
   let close_end () = Writer.stats_end (get_writer ()) `Close_op
-
   let dump_context_begin () = Writer.stats_begin (get_writer ())
-
   let dump_context_end () = Writer.stats_end (get_writer ()) `Dump_context_op
-
   let recursive_op_begin () = Writer.recursive_op_begin (get_writer ())
-
   let recursive_op_exit () = Writer.recursive_op_exit (get_writer ())
-
   let recursive_op_enter () = Writer.recursive_op_enter (get_writer ())
-
   let recursive_op_end tag = Writer.recursive_op_end (get_writer ()) tag
 
   module Tree = struct
     let empty _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Empty)
 
     let of_raw _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Of_raw)
 
     let of_value _ _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Of_value)
 
     let mem _ _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Mem)
 
     let mem_tree _ _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Mem_tree)
 
     let find _ _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Find)
 
     let is_empty _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Is_empty)
 
     let kind _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Kind)
 
     let hash _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Hash)
 
     let equal _ _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Equal)
 
     let to_value _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `To_value)
 
     let clear ~depth:_ _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Clear)
 
     let find_tree _ _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Find_tree)
 
     let list _ ~offset:_ ~length:_ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `List)
 
     let add _ _ _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Add)
 
     let add_tree _ _ _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Add_tree)
 
     let remove _ _ =
-      direct_op_begin () ;
+      direct_op_begin ();
       fun _res -> direct_op_end (`Tree `Remove)
 
     (** Not simple direct *)
     let fold ~depth:_ ~order:_ _ _ =
-      recursive_op_begin () ;
+      recursive_op_begin ();
       fun _res -> recursive_op_end (`Tree `Fold)
 
     (** Not simple direct *)
     let fold_step _ _ =
-      recursive_op_exit () ;
+      recursive_op_exit ();
       fun _res -> recursive_op_enter ()
   end
 
   let find_tree _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Find_tree
 
   let list _ ~offset:_ ~length:_ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `List
 
   (** Not simple direct *)
   let fold ~depth:_ ~order:_ _ _ =
-    recursive_op_begin () ;
+    recursive_op_begin ();
     fun _res -> recursive_op_end (`Tree `Fold)
 
   (** Not simple direct *)
   let fold_step _ _ =
-    recursive_op_exit () ;
+    recursive_op_exit ();
     fun _res -> recursive_op_enter ()
 
   let add_tree _ _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Add_tree
 
   let mem _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Mem
 
   let mem_tree _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Mem_tree
 
   let find _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Find
 
   let get_protocol _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Get_protocol
 
   let hash ~time:_ ~message:_ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Hash
 
   let merkle_tree _ _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Merkle_tree
 
   let find_predecessor_block_metadata_hash _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Find_predecessor_block_metadata_hash
 
   let find_predecessor_ops_metadata_hash _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Find_predecessor_ops_metadata_hash
 
   let get_test_chain _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Get_test_chain
 
   let exists _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Exists
 
   let retrieve_commit_info _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Retrieve_commit_info
 
   let add _ _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Add
 
   let remove _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Remove
 
   let add_protocol _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Add_protocol
 
   let add_predecessor_block_metadata_hash _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Add_predecessor_block_metadata_hash
 
   let add_predecessor_ops_metadata_hash _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Add_predecessor_ops_metadata_hash
 
   let add_test_chain _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Add_test_chain
 
   let remove_test_chain _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Remove_test_chain
 
   let fork_test_chain _ ~protocol:_ ~expiration:_ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Fork_test_chain
 
   let checkout _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res ->
-      direct_op_end `Checkout ;
+      direct_op_end `Checkout;
       Writer.flush (get_writer ())
 
   let checkout_exn _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res ->
-      direct_op_end `Checkout_exn ;
+      direct_op_end `Checkout_exn;
       Writer.flush (get_writer ())
 
   (** Not simple direct *)
   let close _ =
-    close_begin () ;
+    close_begin ();
     fun _res ->
-      close_end () ;
+      close_end ();
       Writer.flush (get_writer ())
 
   let sync _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Sync
 
   let set_master _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Set_master
 
   let set_head _ _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Set_head
 
   (** Not simple direct *)
@@ -888,11 +868,11 @@ struct
     let* () = Writer.commit_begin (get_writer ()) () in
     Lwt.return @@ fun _res ->
     let* () = Writer.commit_end ?specs (get_writer ()) () in
-    Writer.flush (get_writer ()) ;
+    Writer.flush (get_writer ());
     Lwt.return_unit
 
   let clear_test_chain _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Clear_test_chain
 
   (** Not simple direct *)
@@ -901,18 +881,18 @@ struct
     let* () = Writer.commit_begin (get_writer ()) ~context:ctx () in
     Lwt.return @@ fun _res ->
     let* () = Writer.commit_end (get_writer ()) ?specs ~context:ctx () in
-    Writer.flush (get_writer ()) ;
+    Writer.flush (get_writer ());
     Lwt.return_unit
 
   (** Not simple direct *)
   let commit_test_chain_genesis _ _ =
-    direct_op_begin () ;
+    direct_op_begin ();
     fun _res -> direct_op_end `Commit_test_chain_genesis
 
   (** Not simple direct *)
   let init ~readonly:_ ?indexing_strategy:_ path =
-    setup_writer path ;
-    direct_op_begin () ;
+    setup_writer path;
+    direct_op_begin ();
     fun _res -> direct_op_end `Init
 
   (** Not simple direct *)
@@ -922,15 +902,15 @@ struct
 
   let restore_context _ ~expected_context_hash:_ ~nb_context_elements:_ ~fd:_
       ~legacy:_ ~in_memory:_ ~progress_display_mode:_ =
-    direct_op_begin () ;
+    direct_op_begin ();
     Lwt.return @@ fun _res ->
-    direct_op_end `Restore_context ;
+    direct_op_end `Restore_context;
     Lwt.return_unit
 
   let dump_context _ _ ~fd:_ ~on_disk:_ ~progress_display_mode:_ =
-    dump_context_begin () ;
+    dump_context_begin ();
     Lwt.return @@ fun _res ->
-    dump_context_end () ;
+    dump_context_end ();
     Lwt.return_unit
 
   (** Not simple direct *)
