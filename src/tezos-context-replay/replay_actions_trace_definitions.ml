@@ -113,17 +113,17 @@
     Thanks to this grouping, it appears clearly that [Add_tree] is the only
     operation that combines trees into contexts (its domain is [i_ io ___]). *)
 
-(** Use Option from Stdlib instead of the Tezos one. *)
 module Option = Stdlib.Option
+(** Use Option from Stdlib instead of the Tezos one. *)
 
-(** Use List from Stdlib instead of the Tezos one. *)
 module List = Stdlib.List
+(** Use List from Stdlib instead of the Tezos one. *)
 
 (** Use failwith from Stdlib instead of the Tezos one. *)
 let failwith = Stdlib.failwith
 
-(** Import from recording to avoid duplication. *)
 module Trace_common = Tezos_context_recording.Trace_common
+(** Import from recording to avoid duplication. *)
 
 module Trace_auto_file_format = Tezos_context_recording.Trace_auto_file_format
 
@@ -164,11 +164,8 @@ module V0 = struct
   let version = 0
 
   type key = string list [@@deriving repr]
-
   type hash = string [@@deriving repr]
-
   type message = string [@@deriving repr]
-
   type varint63 = Optint.Int63.t [@@deriving repr]
 
   let varint63_t =
@@ -177,57 +174,47 @@ module V0 = struct
   (* FIXME: wait for Repr modification to support size in like *)
 
   type tracker = varint63 [@@deriving repr]
-
   type step = string [@@deriving repr]
-
   type value = bytes [@@deriving repr]
 
-  type depth = [`Eq of int | `Ge of int | `Gt of int | `Le of int | `Lt of int]
+  type depth = [ `Eq of int | `Ge of int | `Gt of int | `Le of int | `Lt of int ]
   [@@deriving repr]
 
-  type order = [`Sorted | `Undefined] [@@deriving repr]
-
+  type order = [ `Sorted | `Undefined ] [@@deriving repr]
   type block_level = int [@@deriving repr]
-
   type time_protocol = int64 [@@deriving repr]
-
-  type merkle_leaf_kind = [`Hole | `Raw_context] [@@deriving repr]
-
+  type merkle_leaf_kind = [ `Hole | `Raw_context ] [@@deriving repr]
   type chain_id = string [@@deriving repr]
-
   type test_chain_status = Test_chain_status.t
 
   let test_chain_status_t =
     let open Repr in
     variant "test_chain_status" (fun not_running forking running -> function
       | Test_chain_status.Not_running -> not_running
-      | Forking {protocol; expiration} ->
+      | Forking { protocol; expiration } ->
           let protocol = Protocol_hash.to_string protocol in
           let expiration = Time.Protocol.to_seconds expiration in
           forking (protocol, expiration)
-      | Running {chain_id; genesis; protocol; expiration} ->
+      | Running { chain_id; genesis; protocol; expiration } ->
           let chain_id = Chain_id.to_string chain_id in
           let genesis = Block_hash.to_string genesis in
           let protocol = Protocol_hash.to_string protocol in
           let expiration = Time.Protocol.to_seconds expiration in
           running ((chain_id, genesis), (protocol, expiration)))
     |~ case0 "Not_running" Test_chain_status.Not_running
-    |~ case1
-         "Forking"
-         (pair hash_t time_protocol_t)
+    |~ case1 "Forking" (pair hash_t time_protocol_t)
          (fun (protocol, expiration) ->
            let protocol = Protocol_hash.of_string_exn protocol in
            let expiration = Time.Protocol.of_seconds expiration in
-           Test_chain_status.Forking {protocol; expiration})
-    |~ case1
-         "Running"
+           Test_chain_status.Forking { protocol; expiration })
+    |~ case1 "Running"
          (pair (pair chain_id_t hash_t) (pair hash_t time_protocol_t))
          (fun ((chain_id, genesis), (protocol, expiration)) ->
            let chain_id = Chain_id.of_string_exn chain_id in
            let genesis = Block_hash.of_string_exn genesis in
            let protocol = Protocol_hash.of_string_exn protocol in
            let expiration = Time.Protocol.of_seconds expiration in
-           Test_chain_status.Running {chain_id; genesis; protocol; expiration})
+           Test_chain_status.Running { chain_id; genesis; protocol; expiration })
     |> sealv
 
   (** [scope_start_rhs] tags are used in replay to identify the situations
@@ -246,17 +233,14 @@ module V0 = struct
   type scope_end = Last_occurence | Will_reoccur [@@deriving repr]
 
   type tree = scope_end * tracker [@@deriving repr]
-
   type context = scope_end * tracker [@@deriving repr]
-
   type commit_hash_rhs = scope_start_rhs * scope_end * hash [@@deriving repr]
-
   type commit_hash_lhs = scope_start_lhs * scope_end * hash [@@deriving repr]
-
   type ('input, 'output) fn = 'input * 'output [@@deriving repr]
 
   module Tree = struct
-    type raw = [`Value of value | `Tree of (step * raw) list] [@@deriving repr]
+    type raw = [ `Value of value | `Tree of (step * raw) list ]
+    [@@deriving repr]
 
     type t =
       (* [_o i_ ___] *)
@@ -269,7 +253,7 @@ module V0 = struct
       | Mem_tree of (tree * key, bool) fn
       | Find of (tree * key, bool (* recording is_some *)) fn
       | Is_empty of (tree, bool) fn
-      | Kind of (tree, [`Tree | `Value]) fn
+      | Kind of (tree, [ `Tree | `Value ]) fn
       | Hash of (tree, unit (* not recorded *)) fn
       | Equal of (tree * tree, bool) fn
       | To_value of (tree, bool (* recording is_some *)) fn
@@ -330,8 +314,6 @@ module V0 = struct
     | Patch_context_exit of context * context
   [@@deriving repr]
 
-  (** Events of a block. The first/last are either init/commit_genesis or
-        checkout(exn)/commit. *)
   type row = {
     level : int;
     tzop_count : int;
@@ -346,6 +328,8 @@ module V0 = struct
     uses_patch_context : bool;
   }
   [@@deriving repr]
+  (** Events of a block. The first/last are either init/commit_genesis or
+        checkout(exn)/commit. *)
 
   type header = {
     initial_block : (block_level * hash) option;
@@ -366,10 +350,7 @@ include Trace_auto_file_format.Make (struct
 
   let get_version_converter = function
     | 0 ->
-        Trace_auto_file_format.create_version_converter
-          ~header_t:V0.header_t
-          ~row_t:V0.row_t
-          ~upgrade_header:Fun.id
-          ~upgrade_row:Fun.id
+        Trace_auto_file_format.create_version_converter ~header_t:V0.header_t
+          ~row_t:V0.row_t ~upgrade_header:Fun.id ~upgrade_row:Fun.id
     | i -> Fmt.invalid_arg "Unknown replayable actions trace version %d" i
 end)

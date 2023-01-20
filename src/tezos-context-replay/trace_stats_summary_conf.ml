@@ -26,7 +26,6 @@
 (** Stats trace summary configuration. *)
 
 let histo_bin_count = 16
-
 let curves_sample_count = 201
 
 (** Parameter to control the width of the moving average window.

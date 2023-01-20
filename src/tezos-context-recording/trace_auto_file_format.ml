@@ -25,14 +25,14 @@
 
 include Trace_auto_file_format_intf
 
-(** Contains everything needed to read a file as if it is written using the
-    lastest version. *)
 type ('latest_header, 'latest_row, 'header, 'row) version_converter' = {
   header_t : 'header Repr.ty;
   row_t : 'row Repr.ty;
   upgrade_header : 'header -> 'latest_header;
   upgrade_row : 'row -> 'latest_row;
 }
+(** Contains everything needed to read a file as if it is written using the
+    lastest version. *)
 
 (** A box containing the above record *)
 type (_, _) version_converter =
@@ -47,18 +47,17 @@ let create_version_converter :
     upgrade_row:('row -> 'latest_row) ->
     ('latest_header, 'latest_row) version_converter =
  fun ~header_t ~row_t ~upgrade_header ~upgrade_row ->
-  Version_converter {header_t; row_t; upgrade_header; upgrade_row}
+  Version_converter { header_t; row_t; upgrade_header; upgrade_row }
 
 module Magic : MAGIC = struct
   type t = string
 
   let of_string s =
     if String.length s <> 8 then
-      invalid_arg "Magic.of_string, string should have 8 chars" ;
+      invalid_arg "Magic.of_string, string should have 8 chars";
     s
 
   let to_string s = s
-
   let pp ppf s = Format.fprintf ppf "%s" (String.escaped s)
 end
 
@@ -71,7 +70,7 @@ module type S =
   S
     with type File_format.magic := Magic.t
     with type ('a, 'b) File_format.version_converter :=
-          ('a, 'b) version_converter
+      ('a, 'b) version_converter
 
 (** Variable size integer.
 
@@ -93,7 +92,7 @@ module Var_int = struct
         if n >= 0 && n < 128 then k chars.(n)
         else
           let out = 128 lor (n land 127) in
-          k chars.(out) ;
+          k chars.(out);
           aux (n lsr 7) k
       in
       aux i k
@@ -119,11 +118,8 @@ module Make (Ff : FILE_FORMAT) = struct
   module File_format = Ff
 
   let decode_i32 = Repr.(decode_bin int32 |> unstage)
-
   let encode_i32 = Repr.(encode_bin int32 |> unstage)
-
   let encode_lheader = Repr.(encode_bin Ff.Latest.header_t |> unstage)
-
   let encode_lrow = Repr.(encode_bin Ff.Latest.row_t |> unstage)
 
   let read_with_prefix_exn : (string -> int ref -> 'a) -> in_channel -> 'a =
@@ -142,8 +138,7 @@ module Make (Ff : FILE_FORMAT) = struct
           Fmt.str
             "A value read in the Trace was expected to take %d bytes, but it \
              took only %d."
-            len
-            !offset_ref
+            len !offset_ref
         in
         raise (Misc.Suspicious_trace_file msg)
     in
@@ -175,13 +170,8 @@ module Make (Ff : FILE_FORMAT) = struct
     let () =
       if magic <> Ff.magic then
         let msg =
-          Fmt.str
-            "File '%s' has magic '%a'. Expected '%a'."
-            path
-            Magic.pp
-            magic
-            Magic.pp
-            Ff.magic
+          Fmt.str "File '%s' has magic '%a'. Expected '%a'." path Magic.pp magic
+            Magic.pp Ff.magic
         in
         raise (Misc.Suspicious_trace_file msg)
     in
@@ -189,7 +179,7 @@ module Make (Ff : FILE_FORMAT) = struct
     let offset_ref = ref 0 in
     let version = decode_i32 (really_input_string chan 4) offset_ref in
     let (Version_converter vc) =
-      assert (!offset_ref = 4) ;
+      assert (!offset_ref = 4);
       Ff.get_version_converter (Int32.to_int version)
     in
 
@@ -203,27 +193,26 @@ module Make (Ff : FILE_FORMAT) = struct
     in
     (Int32.to_int version, header, seq)
 
-  type writer = {channel : out_channel; buffer : Buffer.t}
+  type writer = { channel : out_channel; buffer : Buffer.t }
 
   let create channel header =
     let buffer = Buffer.create 0 in
-    output_string channel (Magic.to_string Ff.magic) ;
-    encode_i32 (Int32.of_int Ff.Latest.version) (output_string channel) ;
-    encode_lheader header (Buffer.add_string buffer) ;
-    Var_int.write (Buffer.length buffer) channel ;
-    output_string channel (Buffer.contents buffer) ;
-    Buffer.clear buffer ;
-    {channel; buffer}
+    output_string channel (Magic.to_string Ff.magic);
+    encode_i32 (Int32.of_int Ff.Latest.version) (output_string channel);
+    encode_lheader header (Buffer.add_string buffer);
+    Var_int.write (Buffer.length buffer) channel;
+    output_string channel (Buffer.contents buffer);
+    Buffer.clear buffer;
+    { channel; buffer }
 
   let create_file path header = create (open_out path) header
 
-  let append_row {channel; buffer; _} row =
-    encode_lrow row (Buffer.add_string buffer) ;
-    Var_int.write (Buffer.length buffer) channel ;
-    output_string channel (Buffer.contents buffer) ;
+  let append_row { channel; buffer; _ } row =
+    encode_lrow row (Buffer.add_string buffer);
+    Var_int.write (Buffer.length buffer) channel;
+    output_string channel (Buffer.contents buffer);
     Buffer.clear buffer
 
-  let flush {channel; _} = flush channel
-
-  let close {channel; _} = close_out channel
+  let flush { channel; _ } = flush channel
+  let close { channel; _ } = close_out channel
 end

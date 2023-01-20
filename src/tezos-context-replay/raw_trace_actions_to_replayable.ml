@@ -68,7 +68,8 @@ let level_of_commit_message message =
     |> List.map String.trim
     |> List.map (String.split_on_char ' ')
   with
-  | [["lvl"; lvl]; ["fit"; _]; ["prio"; _]; [_; "ops"]] -> int_of_string lvl
+  | [ [ "lvl"; lvl ]; [ "fit"; _ ]; [ "prio"; _ ]; [ _; "ops" ] ] ->
+      int_of_string lvl
   | _ -> Fmt.failwith "Could not parse commit message: `%s`" message
 
 module Slice_input_seq = struct
@@ -88,29 +89,29 @@ module Slice_input_seq = struct
 
   let slice ~first ~last seq =
     let is_first_commit acc lvl_opt =
-      assert acc.looking_for_first ;
+      assert acc.looking_for_first;
       match (first, lvl_opt) with
-      | (`Idx i, _) when i < acc.commits_seen ->
+      | `Idx i, _ when i < acc.commits_seen ->
           Fmt.failwith "First block idx should be greater than 0"
-      | (`Idx i, _) when i = acc.commits_seen -> true
-      | (`Idx _, _) -> false
-      | (`Level _, None) -> false
-      | (`Level i, Some j) when i > j -> false
-      | (`Level i, Some j) when i = j -> true
-      | (`Level _, Some _) ->
+      | `Idx i, _ when i = acc.commits_seen -> true
+      | `Idx _, _ -> false
+      | `Level _, None -> false
+      | `Level i, Some j when i > j -> false
+      | `Level i, Some j when i = j -> true
+      | `Level _, Some _ ->
           Fmt.failwith "Could not find requested first block level in input seq"
     in
     let is_last_commit acc lvl_opt =
       match (last, lvl_opt) with
-      | (`End, _) -> false
-      | (`Count n, _) when n > acc.commits_sent + 1 -> false
-      | (`Count n, _) when n = acc.commits_sent + 1 -> true
-      | (`Count _, _) ->
+      | `End, _ -> false
+      | `Count n, _ when n > acc.commits_sent + 1 -> false
+      | `Count n, _ when n = acc.commits_sent + 1 -> true
+      | `Count _, _ ->
           Fmt.failwith "The number of requested blocks should be greater than 0"
-      | (`Level _, None) -> false
-      | (`Level i, Some j) when i > j -> false
-      | (`Level i, Some j) when i = j -> true
-      | (`Level _, Some _) ->
+      | `Level _, None -> false
+      | `Level i, Some j when i > j -> false
+      | `Level i, Some j when i = j -> true
+      | `Level _, Some _ ->
           Fmt.failwith "Could not find requested last block level in input seq"
     in
     let rec aux acc =
@@ -131,7 +132,7 @@ module Slice_input_seq = struct
           match ev with
           | Def0.Commit _ | Commit_genesis_end _ ->
               let lvl_opt = block_level_opt_of_raw_row ev in
-              let (is_first, is_included, is_last) =
+              let is_first, is_included, is_last =
                 if acc.looking_for_first then
                   let is_first = is_first_commit acc lvl_opt in
                   (is_first, is_first, is_last_commit acc lvl_opt)
@@ -154,7 +155,7 @@ module Slice_input_seq = struct
                   (List.rev rev_events_of_current_block)
                   (if is_last then Seq.empty else fun () -> aux acc)
               else aux acc
-          | _ -> aux {acc with seq = rest; rev_events_of_current_block})
+          | _ -> aux { acc with seq = rest; rev_events_of_current_block })
     and yield_events_of_block evs k =
       match evs with
       | [] -> k ()
@@ -173,20 +174,20 @@ end
 
 type hash = Def0.hash
 
-(** The 3 massive hash tables that will contain all the tracker occurences from
-    the trace. *)
 type tracker_id_tables = {
   occurrence_count_per_tree_id : (Def0.tracker, int) Hashtbl.t;
   occurrence_count_per_context_id : (Def0.tracker, int) Hashtbl.t;
   occurrence_count_per_commit_hash : (string, int * int) Hashtbl.t;
 }
+(** The 3 massive hash tables that will contain all the tracker occurences from
+    the trace. *)
 
-(** A summary of one [Def0.row] *)
 type event_details = {
-  rank : [`Ignore | `Crash | `Use | `Control_flow];
+  rank : [ `Ignore | `Crash | `Use | `Control_flow ];
   tracker_ids : Def0.tracker list * Def0.tracker list * Def0.commit_hash list;
   to_v1 : tracker_id_tables -> Def1.event;
 }
+(** A summary of one [Def0.row] *)
 
 (** A single large multi-purpose pattern matching to filter/inspect/map the raw
     rows. *)
@@ -199,19 +200,23 @@ let event_infos =
     }
   in
   let crash =
-    {rank = `Crash; tracker_ids = ([], [], []); to_v1 = (fun _ -> assert false)}
+    {
+      rank = `Crash;
+      tracker_ids = ([], [], []);
+      to_v1 = (fun _ -> assert false);
+    }
   in
   let to_tree t = Def1.Tree t in
 
-  let (scopec, scopet) =
+  let scopec, scopet =
     let add_scope tbl k =
       match Hashtbl.find_opt tbl k with
       | Some 0 | None -> Fmt.failwith "Unexpected scope"
       | Some 1 ->
-          Hashtbl.remove tbl k ;
+          Hashtbl.remove tbl k;
           (Def1.Last_occurence, k)
       | Some i ->
-          Hashtbl.replace tbl k (i - 1) ;
+          Hashtbl.replace tbl k (i - 1);
           (Def1.Will_reoccur, k)
     in
     ( (fun ids -> add_scope ids.occurrence_count_per_context_id),
@@ -230,7 +235,7 @@ let event_infos =
           if remaining = 1 then Def1.Last_occurence else Def1.Will_reoccur
         in
         if remaining = 1 then Hashtbl.remove tbl k
-        else Hashtbl.replace tbl k (remaining - 1, instanciations_before + 1) ;
+        else Hashtbl.replace tbl k (remaining - 1, instanciations_before + 1);
         (scope_start, scope_end, k)
   in
   let scopeh_lhs ids k =
@@ -246,7 +251,7 @@ let event_infos =
           if remaining = 1 then Def1.Last_occurence else Def1.Will_reoccur
         in
         if remaining = 1 then Hashtbl.remove tbl k
-        else Hashtbl.replace tbl k (remaining - 1, instanciations_before) ;
+        else Hashtbl.replace tbl k (remaining - 1, instanciations_before);
         (scope_start, scope_end, k)
   in
   let open Def0 in
@@ -257,7 +262,7 @@ let event_infos =
       | Empty (x, t) ->
           {
             rank = `Use;
-            tracker_ids = ([t], [x], []);
+            tracker_ids = ([ t ], [ x ], []);
             to_v1 =
               (fun ids ->
                 Def1.Tree.Empty (scopec ids x, scopet ids t) |> to_tree);
@@ -265,13 +270,13 @@ let event_infos =
       | Of_raw (x, t) ->
           {
             rank = `Use;
-            tracker_ids = ([t], [], []);
+            tracker_ids = ([ t ], [], []);
             to_v1 = (fun ids -> Def1.Tree.Of_raw (x, scopet ids t) |> to_tree);
           }
       | Of_value ((x, v), t) ->
           {
             rank = `Use;
-            tracker_ids = ([t], [x], []);
+            tracker_ids = ([ t ], [ x ], []);
             to_v1 =
               (fun ids ->
                 Def1.Tree.Of_value ((scopec ids x, v), scopet ids t) |> to_tree);
@@ -279,20 +284,20 @@ let event_infos =
       | Mem ((t, x), y) ->
           {
             rank = `Use;
-            tracker_ids = ([t], [], []);
+            tracker_ids = ([ t ], [], []);
             to_v1 = (fun ids -> Def1.Tree.Mem ((scopet ids t, x), y) |> to_tree);
           }
       | Mem_tree ((t, x), y) ->
           {
             rank = `Use;
-            tracker_ids = ([t], [], []);
+            tracker_ids = ([ t ], [], []);
             to_v1 =
               (fun ids -> Def1.Tree.Mem_tree ((scopet ids t, x), y) |> to_tree);
           }
       | Find ((t, x), y) ->
           {
             rank = `Use;
-            tracker_ids = ([t], [], []);
+            tracker_ids = ([ t ], [], []);
             to_v1 =
               (fun ids ->
                 Def1.Tree.Find ((scopet ids t, x), Option.is_some y) |> to_tree);
@@ -300,25 +305,25 @@ let event_infos =
       | Is_empty (t, x) ->
           {
             rank = `Use;
-            tracker_ids = ([t], [], []);
+            tracker_ids = ([ t ], [], []);
             to_v1 = (fun ids -> Def1.Tree.Is_empty (scopet ids t, x) |> to_tree);
           }
       | Kind (t, x) ->
           {
             rank = `Use;
-            tracker_ids = ([t], [], []);
+            tracker_ids = ([ t ], [], []);
             to_v1 = (fun ids -> Def1.Tree.Kind (scopet ids t, x) |> to_tree);
           }
       | Hash (t, _) ->
           {
             rank = `Use;
-            tracker_ids = ([t], [], []);
+            tracker_ids = ([ t ], [], []);
             to_v1 = (fun ids -> Def1.Tree.Hash (scopet ids t, ()) |> to_tree);
           }
       | Equal ((t, t'), x) ->
           {
             rank = `Use;
-            tracker_ids = ([t; t'], [], []);
+            tracker_ids = ([ t; t' ], [], []);
             to_v1 =
               (fun ids ->
                 Def1.Tree.Equal ((scopet ids t, scopet ids t'), x) |> to_tree);
@@ -326,7 +331,7 @@ let event_infos =
       | To_value (t, x) ->
           {
             rank = `Use;
-            tracker_ids = ([t], [], []);
+            tracker_ids = ([ t ], [], []);
             to_v1 =
               (fun ids ->
                 Def1.Tree.To_value (scopet ids t, Option.is_some x) |> to_tree);
@@ -334,14 +339,14 @@ let event_infos =
       | Clear ((x, t), ()) ->
           {
             rank = `Use;
-            tracker_ids = ([t], [], []);
+            tracker_ids = ([ t ], [], []);
             to_v1 =
               (fun ids -> Def1.Tree.Clear ((x, scopet ids t), ()) |> to_tree);
           }
       | Find_tree ((t, x), t') ->
           {
             rank = `Use;
-            tracker_ids = ([t] @ Option.to_list t', [], []);
+            tracker_ids = ([ t ] @ Option.to_list t', [], []);
             to_v1 =
               (fun ids ->
                 Def1.Tree.Find_tree
@@ -351,7 +356,7 @@ let event_infos =
       | Add ((t, x, y), t') ->
           {
             rank = `Use;
-            tracker_ids = ([t; t'], [], []);
+            tracker_ids = ([ t; t' ], [], []);
             to_v1 =
               (fun ids ->
                 Def1.Tree.Add ((scopet ids t, x, y), scopet ids t') |> to_tree);
@@ -359,7 +364,7 @@ let event_infos =
       | Add_tree ((t, x, t'), t'') ->
           {
             rank = `Use;
-            tracker_ids = ([t; t'; t''], [], []);
+            tracker_ids = ([ t; t'; t'' ], [], []);
             to_v1 =
               (fun ids ->
                 Def1.Tree.Add_tree
@@ -369,7 +374,7 @@ let event_infos =
       | Remove ((t, x), t') ->
           {
             rank = `Use;
-            tracker_ids = ([t; t'], [], []);
+            tracker_ids = ([ t; t' ], [], []);
             to_v1 =
               (fun ids ->
                 Def1.Tree.Remove ((scopet ids t, x), scopet ids t') |> to_tree);
@@ -382,7 +387,7 @@ let event_infos =
   | Find_tree ((c, x), t') ->
       {
         rank = `Use;
-        tracker_ids = (Option.to_list t', [c], []);
+        tracker_ids = (Option.to_list t', [ c ], []);
         to_v1 =
           (fun ids ->
             Def1.Find_tree ((scopec ids c, x), Option.map (scopet ids) t'));
@@ -390,19 +395,19 @@ let event_infos =
   | Fold_start (x, c, y) ->
       {
         rank = `Use;
-        tracker_ids = ([], [c], []);
+        tracker_ids = ([], [ c ], []);
         to_v1 = (fun ids -> Def1.Fold_start (x, scopec ids c, y));
       }
   | Fold_step_enter t ->
       {
         rank = `Use;
-        tracker_ids = ([t], [], []);
+        tracker_ids = ([ t ], [], []);
         to_v1 = (fun ids -> Def1.Fold_step_enter (scopet ids t));
       }
   | Fold_step_exit t ->
       {
         rank = `Use;
-        tracker_ids = ([t], [], []);
+        tracker_ids = ([ t ], [], []);
         to_v1 = (fun ids -> Def1.Fold_step_exit (scopet ids t));
       }
   | Fold_end _ ->
@@ -414,7 +419,7 @@ let event_infos =
   | Add_tree ((c, x, t), c') ->
       {
         rank = `Use;
-        tracker_ids = ([t], [c; c'], []);
+        tracker_ids = ([ t ], [ c; c' ], []);
         to_v1 =
           (fun ids ->
             Def1.Add_tree ((scopec ids c, x, scopet ids t), scopec ids c'));
@@ -422,37 +427,37 @@ let event_infos =
   | Mem ((c, x), y) ->
       {
         rank = `Use;
-        tracker_ids = ([], [c], []);
+        tracker_ids = ([], [ c ], []);
         to_v1 = (fun ids -> Def1.Mem ((scopec ids c, x), y));
       }
   | Mem_tree ((c, x), y) ->
       {
         rank = `Use;
-        tracker_ids = ([], [c], []);
+        tracker_ids = ([], [ c ], []);
         to_v1 = (fun ids -> Def1.Mem_tree ((scopec ids c, x), y));
       }
   | Find ((c, x), y) ->
       {
         rank = `Use;
-        tracker_ids = ([], [c], []);
+        tracker_ids = ([], [ c ], []);
         to_v1 = (fun ids -> Def1.Find ((scopec ids c, x), Option.is_some y));
       }
   | Get_protocol (c, _) ->
       {
         rank = `Use;
-        tracker_ids = ([], [c], []);
+        tracker_ids = ([], [ c ], []);
         to_v1 = (fun ids -> Def1.Get_protocol (scopec ids c, ()));
       }
   | Hash ((x, y, c), _) ->
       {
         rank = `Use;
-        tracker_ids = ([], [c], []);
+        tracker_ids = ([], [ c ], []);
         to_v1 = (fun ids -> Def1.Hash ((x, y, scopec ids c), ()));
       }
   | Find_predecessor_block_metadata_hash (c, _) ->
       {
         rank = `Use;
-        tracker_ids = ([], [c], []);
+        tracker_ids = ([], [ c ], []);
         to_v1 =
           (fun ids ->
             Def1.Find_predecessor_block_metadata_hash (scopec ids c, ()));
@@ -460,7 +465,7 @@ let event_infos =
   | Find_predecessor_ops_metadata_hash (c, _) ->
       {
         rank = `Use;
-        tracker_ids = ([], [c], []);
+        tracker_ids = ([], [ c ], []);
         to_v1 =
           (fun ids ->
             Def1.Find_predecessor_ops_metadata_hash (scopec ids c, ()));
@@ -468,39 +473,39 @@ let event_infos =
   | Get_test_chain (c, _) ->
       {
         rank = `Use;
-        tracker_ids = ([], [c], []);
+        tracker_ids = ([], [ c ], []);
         to_v1 = (fun ids -> Def1.Get_test_chain (scopec ids c, ()));
       }
   | Exists ((h, x), _) ->
       {
         rank = `Use;
-        tracker_ids = ([], [], [h]);
+        tracker_ids = ([], [], [ h ]);
         to_v1 = (fun ids -> Def1.Exists (scopeh_lhs ids h, x));
       }
   | Retrieve_commit_info ((_, _), _) -> ignore_
   | Add ((c, x, y), c') ->
       {
         rank = `Use;
-        tracker_ids = ([], [c; c'], []);
+        tracker_ids = ([], [ c; c' ], []);
         to_v1 = (fun ids -> Def1.Add ((scopec ids c, x, y), scopec ids c'));
       }
   | Remove ((c, x), c') ->
       {
         rank = `Use;
-        tracker_ids = ([], [c; c'], []);
+        tracker_ids = ([], [ c; c' ], []);
         to_v1 = (fun ids -> Def1.Remove ((scopec ids c, x), scopec ids c'));
       }
   | Add_protocol ((c, x), c') ->
       {
         rank = `Use;
-        tracker_ids = ([], [c; c'], []);
+        tracker_ids = ([], [ c; c' ], []);
         to_v1 =
           (fun ids -> Def1.Add_protocol ((scopec ids c, x), scopec ids c'));
       }
   | Add_predecessor_block_metadata_hash ((c, x), c') ->
       {
         rank = `Use;
-        tracker_ids = ([], [c; c'], []);
+        tracker_ids = ([], [ c; c' ], []);
         to_v1 =
           (fun ids ->
             Def1.Add_predecessor_block_metadata_hash
@@ -509,7 +514,7 @@ let event_infos =
   | Add_predecessor_ops_metadata_hash ((c, x), c') ->
       {
         rank = `Use;
-        tracker_ids = ([], [c; c'], []);
+        tracker_ids = ([], [ c; c' ], []);
         to_v1 =
           (fun ids ->
             Def1.Add_predecessor_ops_metadata_hash
@@ -518,21 +523,21 @@ let event_infos =
   | Add_test_chain ((c, x), c') ->
       {
         rank = `Use;
-        tracker_ids = ([], [c; c'], []);
+        tracker_ids = ([], [ c; c' ], []);
         to_v1 =
           (fun ids -> Def1.Add_test_chain ((scopec ids c, x), scopec ids c'));
       }
   | Remove_test_chain (c, c') ->
       {
         rank = `Use;
-        tracker_ids = ([], [c; c'], []);
+        tracker_ids = ([], [ c; c' ], []);
         to_v1 =
           (fun ids -> Def1.Remove_test_chain (scopec ids c, scopec ids c'));
       }
   | Fork_test_chain ((c, x, y), c') ->
       {
         rank = `Use;
-        tracker_ids = ([], [c; c'], []);
+        tracker_ids = ([], [ c; c' ], []);
         to_v1 =
           (fun ids ->
             Def1.Fork_test_chain ((scopec ids c, x, y), scopec ids c'));
@@ -540,7 +545,7 @@ let event_infos =
   | Checkout ((h, Some c), _) | Checkout_exn ((h, Ok c), _) ->
       {
         rank = `Control_flow;
-        tracker_ids = ([], [c], [h]);
+        tracker_ids = ([], [ c ], [ h ]);
         to_v1 = (fun ids -> Def1.Checkout (scopeh_lhs ids h, scopec ids c));
       }
   | Commit_genesis_start (((chain_id, time_protocol, hash), ()), _) ->
@@ -554,7 +559,7 @@ let event_infos =
   | Commit_genesis_end (((), Ok h), _) ->
       {
         rank = `Control_flow;
-        tracker_ids = ([], [], [h]);
+        tracker_ids = ([], [], [ h ]);
         to_v1 = (fun ids -> Def1.Commit_genesis_end ((), scopeh_rhs ids h));
       }
   | Clear_test_chain (x, ()) ->
@@ -566,7 +571,7 @@ let event_infos =
   | Commit (((x, y, c), h), _) ->
       {
         rank = `Control_flow;
-        tracker_ids = ([], [c], [h]);
+        tracker_ids = ([], [ c ], [ h ]);
         to_v1 =
           (fun ids -> Def1.Commit ((x, y, scopec ids c), scopeh_rhs ids h));
       }
@@ -579,13 +584,13 @@ let event_infos =
   | Patch_context_enter c ->
       {
         rank = `Use;
-        tracker_ids = ([], [c], []);
+        tracker_ids = ([], [ c ], []);
         to_v1 = (fun ids -> Def1.Patch_context_enter (scopec ids c));
       }
   | Patch_context_exit (c, Ok c') ->
       {
         rank = `Use;
-        tracker_ids = ([], [c; c'], []);
+        tracker_ids = ([], [ c; c' ], []);
         to_v1 =
           (fun ids -> Def1.Patch_context_exit (scopec ids c, scopec ids c'));
       }
@@ -637,14 +642,14 @@ let event_infos =
 module Pass0 = struct
   (** Count events *)
   module Op_count = struct
-    type t = {ignored : int; used : int}
+    type t = { ignored : int; used : int }
 
     let folder =
-      let acc0 = {ignored = 0; used = 0} in
+      let acc0 = { ignored = 0; used = 0 } in
       let accumulate acc ((_ : int64), row) =
         match event_infos row with
-        | {rank = `Ignore; _} -> {acc with ignored = acc.ignored + 1}
-        | _ -> {acc with used = acc.used + 1}
+        | { rank = `Ignore; _ } -> { acc with ignored = acc.ignored + 1 }
+        | _ -> { acc with used = acc.used + 1 }
       in
       let finalise = Fun.id in
       Trace_common.Parallel_folders.folder acc0 accumulate finalise
@@ -664,24 +669,24 @@ module Pass0 = struct
       in
       let accumulate acc ((i : int64), row) =
         if Int64.rem i 25_000_000L = 0L then
-          Logs.app (fun l -> l "Pass0 - Dealing with row idx %#Ld" i) ;
+          Logs.app (fun l -> l "Pass0 - Dealing with row idx %#Ld" i);
         match event_infos row with
-        | {rank = `Use; tracker_ids; _} | {rank = `Control_flow; tracker_ids; _}
-          ->
-            let (tree_ids, context_ids, commit_hashes) = tracker_ids in
+        | { rank = `Use; tracker_ids; _ }
+        | { rank = `Control_flow; tracker_ids; _ } ->
+            let tree_ids, context_ids, commit_hashes = tracker_ids in
             let incr tbl k =
               match Hashtbl.find_opt tbl k with
               | None -> Hashtbl.add tbl k 1
               | Some i -> Hashtbl.replace tbl k (i + 1)
             in
-            List.iter (incr acc.occurrence_count_per_tree_id) tree_ids ;
-            List.iter (incr acc.occurrence_count_per_context_id) context_ids ;
+            List.iter (incr acc.occurrence_count_per_tree_id) tree_ids;
+            List.iter (incr acc.occurrence_count_per_context_id) context_ids;
             let incr tbl k =
               match Hashtbl.find_opt tbl k with
               | None -> Hashtbl.add tbl k (1, 0)
               | Some (i, _) -> Hashtbl.replace tbl k (i + 1, 0)
             in
-            List.iter (incr acc.occurrence_count_per_commit_hash) commit_hashes ;
+            List.iter (incr acc.occurrence_count_per_commit_hash) commit_hashes;
             acc
         | _ -> acc
       in
@@ -704,7 +709,7 @@ module Pass0 = struct
       events_since_commit : int;
       ingest_row : acc -> int64 * Def0.row -> acc;
       summary_per_block_rev : block_summary list;
-      should_init : [`Absent | `Found of bool];
+      should_init : [ `Absent | `Found of bool ];
     }
 
     type t = block_summary list
@@ -727,41 +732,39 @@ module Pass0 = struct
       let open Def0 in
       let events_since_commit = acc.events_since_commit + 1 in
       match (event_infos row, row) with
-      | (_, (Checkout ((h, Some _), _) | Checkout_exn ((h, Ok _), _))) ->
+      | _, (Checkout ((h, Some _), _) | Checkout_exn ((h, Ok _), _)) ->
           {
             acc with
             ingest_row = look_for_commit (Some first_row_idx) (Some h);
             events_since_commit;
           }
-      | ({rank = `Use; _}, _) ->
+      | { rank = `Use; _ }, _ ->
           {
             acc with
             ingest_row = look_for_commit_genesis first_row_idx false;
             events_since_commit;
           }
-      | ({rank = `Control_flow; _}, _)
-      | ({rank = `Ignore; _}, _)
-      | ({rank = `Crash; _}, _) ->
-          Fmt.failwith
-            "Can't handle the following raw event after an init: %a"
-            (Repr.pp Def0.row_t)
-            row
+      | { rank = `Control_flow; _ }, _
+      | { rank = `Ignore; _ }, _
+      | { rank = `Crash; _ }, _ ->
+          Fmt.failwith "Can't handle the following raw event after an init: %a"
+            (Repr.pp Def0.row_t) row
 
     and look_for_commit_genesis first_row_idx uses_patch_context acc (idx, row)
         =
       let open Def0 in
       let events_since_commit = acc.events_since_commit + 1 in
       match (event_infos row, row) with
-      | ({rank = `Ignore; _}, _) -> acc
-      | (_, Patch_context_enter _) ->
-          assert (not uses_patch_context) ;
+      | { rank = `Ignore; _ }, _ -> acc
+      | _, Patch_context_enter _ ->
+          assert (not uses_patch_context);
           {
             acc with
             ingest_row = look_for_commit_genesis first_row_idx true;
             events_since_commit;
           }
-      | ({rank = `Use; _}, _) -> {acc with events_since_commit}
-      | ({rank = `Control_flow; _}, Commit_genesis_end ((_, Ok h), _)) ->
+      | { rank = `Use; _ }, _ -> { acc with events_since_commit }
+      | { rank = `Control_flow; _ }, Commit_genesis_end ((_, Ok h), _) ->
           let block =
             {
               first_row_idx;
@@ -778,44 +781,42 @@ module Pass0 = struct
             summary_per_block_rev = block :: acc.summary_per_block_rev;
             should_init = acc.should_init;
           }
-      | ({rank = `Crash; _}, _) | ({rank = `Control_flow; _}, _) ->
-          Fmt.failwith
-            "Can't handle the following raw event: %a"
-            (Repr.pp Def0.row_t)
-            row
-            Fmt.failwith
-            "Unexpected op at the end of a block: %a"
-            (Repr.pp Def0.row_t)
-            row
+      | { rank = `Crash; _ }, _ | { rank = `Control_flow; _ }, _ ->
+          Fmt.failwith "Can't handle the following raw event: %a"
+            (Repr.pp Def0.row_t) row Fmt.failwith
+            "Unexpected op at the end of a block: %a" (Repr.pp Def0.row_t) row
 
     and look_for_commit first_row_idx checkout_hash acc (idx, row) =
       let open Def0 in
       let events_since_commit = acc.events_since_commit + 1 in
       match (event_infos row, row) with
-      | ({rank = `Ignore; _}, _) -> acc
-      | (_, (Checkout ((h, Some _), _) | Checkout_exn ((h, Ok _), _))) ->
+      | { rank = `Ignore; _ }, _ -> acc
+      | _, (Checkout ((h, Some _), _) | Checkout_exn ((h, Ok _), _)) ->
           {
             acc with
             ingest_row = look_for_commit (Some idx) (Some h);
             events_since_commit;
           }
-      | (_, Get_protocol (_, h)) ->
+      | _, Get_protocol (_, h) ->
           {
             acc with
             ingest_row = look_for_commit (Some idx) (Some h);
             events_since_commit;
           }
-      | ({rank = `Use; _}, _) ->
-          {acc with events_since_commit; ingest_row = look_for_commit None None}
-      | (_, Commit (((_, m, _), h), _)) ->
+      | { rank = `Use; _ }, _ ->
+          {
+            acc with
+            events_since_commit;
+            ingest_row = look_for_commit None None;
+          }
+      | _, Commit (((_, m, _), h), _) ->
           let lvl = Option.map level_of_commit_message m in
           let first_row_idx =
             match first_row_idx with
             | None ->
                 Fmt.failwith
                   "Unexpected empty first_row_idx during a commit: %a"
-                  (Repr.pp Def0.row_t)
-                  row
+                  (Repr.pp Def0.row_t) row
             | Some idx -> idx
           in
           let checkout_hash =
@@ -823,8 +824,7 @@ module Pass0 = struct
             | None ->
                 Fmt.failwith
                   "Unexpected empty checkout hash during a commit: %a"
-                  (Repr.pp Def0.row_t)
-                  row
+                  (Repr.pp Def0.row_t) row
             | checkout_hash -> checkout_hash
           in
           let block =
@@ -843,13 +843,11 @@ module Pass0 = struct
             summary_per_block_rev = block :: acc.summary_per_block_rev;
             should_init = acc.should_init;
           }
-      | ({rank = `Control_flow; _}, _)
-      | (_, Patch_context_enter _)
-      | ({rank = `Crash; _}, _) ->
-          Fmt.failwith
-            "Can't handle the following raw event: %a"
-            (Repr.pp Def0.row_t)
-            row
+      | { rank = `Control_flow; _ }, _
+      | _, Patch_context_enter _
+      | { rank = `Crash; _ }, _ ->
+          Fmt.failwith "Can't handle the following raw event: %a"
+            (Repr.pp Def0.row_t) row
 
     let folder =
       let acc0 =
@@ -861,7 +859,7 @@ module Pass0 = struct
         }
       in
       let accumulate acc row = acc.ingest_row acc row in
-      let finalise {summary_per_block_rev; should_init; _} =
+      let finalise { summary_per_block_rev; should_init; _ } =
         (List.rev summary_per_block_rev, should_init)
       in
       Trace_common.Parallel_folders.folder acc0 accumulate finalise
@@ -882,7 +880,7 @@ module Pass1 = struct
   let check_result l =
     List.iter
       (fun i -> if i < 0 then Fmt.failwith "Illegal negative block level")
-      l ;
+      l;
     iter_2by2
       (fun a b ->
         if a + 1 = b then ()
@@ -895,25 +893,25 @@ module Pass1 = struct
       let open Pass0.Segmentation in
       List.rev_map
         (function
-          | {level = Some level; _} -> `Present level
-          | {level = None; _} -> `Missing)
+          | { level = Some level; _ } -> `Present level
+          | { level = None; _ } -> `Missing)
         pass0_seg
       |> List.rev
     in
     let l =
       let map_middle prev_opt v next_opt =
         match (prev_opt, v, next_opt) with
-        | (_, `Present v, _) -> v
-        | (None, `Missing, None) ->
+        | _, `Present v, _ -> v
+        | None, `Missing, None ->
             Fmt.failwith
               "Can't interpolate block level when only 1 missing block"
-        | (None, `Missing, Some (`Missing | `Present _)) ->
+        | None, `Missing, Some (`Missing | `Present _) ->
             Fmt.failwith "Can't interpolate block level when first is absent"
-        | (Some (`Missing | `Present _), `Missing, None) ->
+        | Some (`Missing | `Present _), `Missing, None ->
             Fmt.failwith "Can't interpolate block level when last is absent"
-        | (Some `Missing, `Missing, _) | (_, `Missing, Some `Missing) ->
+        | Some `Missing, `Missing, _ | _, `Missing, Some `Missing ->
             Fmt.failwith "Can't interpolate block level when 2 in a row absent"
-        | (Some (`Present prev), `Missing, Some (`Present next)) ->
+        | Some (`Present prev), `Missing, Some (`Present next) ->
             if prev + 2 = next then prev + 1
             else if prev + 1 = next then
               Fmt.failwith "Can't interpolate orphan block level"
@@ -921,7 +919,7 @@ module Pass1 = struct
       in
       convolve_with_padding map_middle l
     in
-    check_result l ;
+    check_result l;
     List.rev_map2
       (fun Pass0.Segmentation.
              {
@@ -931,8 +929,7 @@ module Pass1 = struct
                commit_hash;
                uses_patch_context;
                _;
-             }
-           level ->
+             } level ->
         {
           level;
           first_row_idx;
@@ -941,8 +938,7 @@ module Pass1 = struct
           commit_hash;
           uses_patch_context;
         })
-      pass0_seg
-      l
+      pass0_seg l
     |> List.rev
 end
 
@@ -966,10 +962,10 @@ module Pass2 = struct
       read_only should_init =
     match block_summaries with
     | [] -> Lwt.return_unit
-    | Pass1.{last_row_idx; level; uses_patch_context; _} :: tl ->
+    | Pass1.{ last_row_idx; level; uses_patch_context; _ } :: tl ->
         if level mod 20_000 = 0 then
-          Logs.app (fun l -> l "Pass2 - Dealing with block lvl %#d" level) ;
-        let (row_seq, rows) =
+          Logs.app (fun l -> l "Pass2 - Dealing with block lvl %#d" level);
+        let row_seq, rows =
           Seq.Custom.take_up_to
             ~is_last:(fun (i, _) -> i = last_row_idx)
             row_seq
@@ -978,8 +974,8 @@ module Pass2 = struct
           rows
           |> List.filter_map (fun (_, row) ->
                  match event_infos row with
-                 | {rank = `Ignore; _} -> None
-                 | {to_v1; _} -> Some (to_v1 ids))
+                 | { rank = `Ignore; _ } -> None
+                 | { to_v1; _ } -> Some (to_v1 ids))
         in
         let ops =
           if depth = 0 && should_init = `Absent then
@@ -988,7 +984,7 @@ module Pass2 = struct
             Def1.Init (read_only, ()) :: ops |> Array.of_list
           else Array.of_list ops
         in
-        if level = 0 then check_genesis_is_last_block ops ;
+        if level = 0 then check_genesis_is_last_block ops;
         let* Tzstat_metrics.
                {
                  op_count;
@@ -1021,35 +1017,26 @@ module Pass2 = struct
               uses_patch_context;
             }
         in
-        Def1.append_row writer row ;
-        run
-          ~depth:(depth + 1)
-          tzstats_cache
-          ids
-          row_seq
-          writer
-          tl
-          read_only
+        Def1.append_row writer row;
+        run ~depth:(depth + 1) tzstats_cache ids row_seq writer tl read_only
           should_init
 end
 
 let run ?(first = `Idx 0) ?(last = `End) in_path out_chan =
   (match Sys.getenv_opt "CONDUIT_TLS" with
   | Some "openssl" -> ()
-  | _ -> Logs.warn (fun l -> l "CONDUIT_TLS is not openssl")) ;
+  | _ -> Logs.warn (fun l -> l "CONDUIT_TLS is not openssl"));
 
   (* Choose the right file in the raw trace directory *)
-  let in_paths = Def0.trace_files_of_trace_directory ~filter:[`Rw] in_path in
+  let in_paths = Def0.trace_files_of_trace_directory ~filter:[ `Rw ] in_path in
   if List.length in_paths <> 1 then
-    Fmt.failwith
-      "Expecting exactly one RW trace file in %s. Got %d"
-      in_path
-      (List.length in_paths) ;
-  let (in_path, _pid) = List.hd in_paths in
-  Logs.app (fun l -> l "Using %s" in_path) ;
+    Fmt.failwith "Expecting exactly one RW trace file in %s. Got %d" in_path
+      (List.length in_paths);
+  let in_path, _pid = List.hd in_paths in
+  Logs.app (fun l -> l "Using %s" in_path);
 
   (* Pass 0, segment blocks, summarise tracker ids *)
-  let (op_counts, ids, (seg, should_init)) =
+  let op_counts, ids, (seg, should_init) =
     let construct op_counts ids seg = (op_counts, ids, seg) in
     let pf0 =
       let open Trace_common.Parallel_folders in
@@ -1069,23 +1056,20 @@ let run ?(first = `Idx 0) ?(last = `End) in_path out_chan =
         l
           "Pass0 done. \n\
           \  Found %#d blocks, %#d trees, %#d contexts, %#d commit hashes. \n\
-          \  %#d operations ignored and %#d operations used."
-          count
+          \  %#d operations ignored and %#d operations used." count
           (Hashtbl.length ids.occurrence_count_per_tree_id)
           (Hashtbl.length ids.occurrence_count_per_context_id)
           (Hashtbl.length ids.occurrence_count_per_commit_hash)
-          op_counts.Pass0.Op_count.ignored
-          op_counts.Pass0.Op_count.used)
+          op_counts.Pass0.Op_count.ignored op_counts.Pass0.Op_count.used)
   in
 
   (* Pass 1, fill the holes in segmentation *)
-  Logs.app (fun l -> l "Pass1") ;
+  Logs.app (fun l -> l "Pass1");
   let seg = Pass1.interpolate_block_ids seg in
   let () =
     let count = List.length seg in
     Logs.app (fun l ->
-        l
-          "Pass1 done. \n  First/last block levels are %#d/%#d"
+        l "Pass1 done. \n  First/last block levels are %#d/%#d"
           (if count = 0 then 0 else (List.hd seg).level)
           (if count = 0 then 0 else (List.nth seg (count - 1)).level))
   in
@@ -1110,10 +1094,10 @@ let run ?(first = `Idx 0) ?(last = `End) in_path out_chan =
   | `Found false ->
       if read_only then
         Fmt.failwith
-          "Found an init of type Ro and another of type Rw. Types mismatch.") ;
+          "Found an init of type Ro and another of type Rw. Types mismatch.");
 
   (* Pass 2, write to destination channel *)
-  Logs.app (fun l -> l "Pass2") ;
+  Logs.app (fun l -> l "Pass2");
   let reader =
     Def0.open_reader in_path
     |> (fun (_, _, x) -> x)
@@ -1132,7 +1116,7 @@ let run ?(first = `Idx 0) ?(last = `End) in_path out_chan =
       let record = List.nth seg (block_count - 1) in
       Pass1.(record.level, record.commit_hash)
     in
-    Def1.{block_count; initial_block; last_block}
+    Def1.{ block_count; initial_block; last_block }
   in
   let writer = Def1.create out_chan header in
   let tzstats_cache =

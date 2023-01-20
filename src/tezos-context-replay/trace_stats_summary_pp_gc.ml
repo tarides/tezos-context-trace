@@ -40,13 +40,12 @@ module Pb = struct
     |> Array.to_list |> List.map Array.to_list
 
   let matrix_to_text m = List.map (List.map PrintBox.text) m
-
   let align_matrix where = List.map (List.map (PrintBox.align ~h:where ~v:`Top))
 
   (** Dirty trick to only have vertical bars, and not the horizontal ones *)
   let matrix_with_column_spacers =
     let rec interleave sep = function
-      | ([_] | []) as l -> l
+      | ([ _ ] | []) as l -> l
       | hd :: tl -> hd :: sep :: interleave sep tl
     in
     List.map (fun l -> interleave (PrintBox.text " | ") l)
@@ -63,8 +62,7 @@ module Pb = struct
           | (true, x), ' ' -> (true, x + 1)
           | (true, x), _ -> (false, x)
           | (false, _), _ -> acc)
-        (true, 0)
-        s
+        (true, 0) s
       |> snd
     in
     let m = transpose_matrix m in
@@ -75,8 +73,7 @@ module Pb = struct
             List.fold_left
               (fun acc cell ->
                 if cell = "" then acc else min acc (count_trailing_spaces cell))
-              max_int
-              col
+              max_int col
           in
           List.map
             (function
@@ -115,12 +112,12 @@ module Pb = struct
 
   let rec text_of_t t =
     match view t with
-    | Text {l = [txt]; _} -> txt
+    | Text { l = [ txt ]; _ } -> txt
     | Empty -> assert false
     | Text _ -> assert false
     | Frame _ -> assert false
     | Pad _ -> assert false
-    | Align {inner; _} -> text_of_t inner
+    | Align { inner; _ } -> text_of_t inner
     | Grid _ -> assert false
     | Tree _ -> assert false
     | Link _ -> assert false
@@ -131,8 +128,8 @@ module Pb = struct
         let row' : string list = row |> List.map text_of_t in
 
         if should_put_space_before_row row' then
-          [List.map (Fun.const (text "")) row; row]
-        else [row])
+          [ List.map (Fun.const (text "")) row; row ]
+        else [ row ])
       m
     |> List.flatten
 
@@ -172,7 +169,7 @@ let sum_rusage = reduce add_rusage
 
 let add_duration (x : Def.Gc.duration) (y : Def.Gc.duration) =
   Def.Gc.
-    {wall = x.wall +. y.wall; sys = x.sys +. y.sys; user = x.user +. y.user}
+    { wall = x.wall +. y.wall; sys = x.sys +. y.sys; user = x.user +. y.user }
 
 let sum_duration = reduce add_duration
 
@@ -303,7 +300,6 @@ module Point = struct
 
     module Frame = struct
       type point_float = t [@@deriving repr]
-
       type t = point_float list [@@deriving repr ~pp]
 
       (** Turn a float-frame into a string-frame using [formatter_of_group]
@@ -314,14 +310,14 @@ module Point = struct
           (fun (k, v) ->
             let g = group_of_key k in
             match Hashtbl.find_opt examples g with
-            | None -> Hashtbl.add examples g [v]
+            | None -> Hashtbl.add examples g [ v ]
             | Some l -> Hashtbl.replace examples g (v :: l))
-          ff ;
+          ff;
         let formatters = Hashtbl.create 0 in
         Hashtbl.iter
           (fun g examples ->
             Hashtbl.add formatters g (formatter_of_group g examples))
-          examples ;
+          examples;
         List.map
           (fun (k, v) ->
             let formatter = Hashtbl.find formatters (group_of_key k) in
@@ -339,7 +335,7 @@ module Point = struct
               let g = group_of_key k in
               match Hashtbl.find_opt first_occ_per_group g with
               | None ->
-                  Hashtbl.add first_occ_per_group g v ;
+                  Hashtbl.add first_occ_per_group g v;
                   (k, blank)
               | Some denom ->
                   let v = Fmt.str " %a" Utils.pp_percent (v /. denom) in
@@ -353,22 +349,20 @@ module Point = struct
 
     module Frame = struct
       type point_string = t [@@deriving repr]
-
       type t = point_string list [@@deriving repr ~pp]
 
       let concat : t -> t -> t =
        fun sf sf' ->
-        assert (List.length sf = List.length sf') ;
+        assert (List.length sf = List.length sf');
         List.map2
           (fun (k, v) (k', v') ->
-            assert (k = k') ;
+            assert (k = k');
             (k, v ^ v'))
-          sf
-          sf'
+          sf sf'
 
       let rec cartesian_product : 'a list list -> 'a list list = function
         | [] -> []
-        | [l] -> List.map (fun x -> [x]) l
+        | [ l ] -> List.map (fun x -> [ x ]) l
         | l :: ll ->
             let below = cartesian_product ll in
             List.map (fun ki -> List.map (fun l -> ki :: l) below) l
@@ -380,9 +374,9 @@ module Point = struct
       (** This is very similar to [pandas.DataFrame.pivot] *)
       let to_printbox (sf : t) ~col_axes ~row_axes ~sort_dim
           ~should_put_space_before_row =
-        assert (List.length col_axes >= 1) ;
-        assert (List.length row_axes >= 1) ;
-        assert (List.length sf >= 1) ;
+        assert (List.length col_axes >= 1);
+        assert (List.length row_axes >= 1);
+        assert (List.length sf >= 1);
         let ndim = Array.length (List.hd sf |> fst) in
         let values_per_dim = Array.init ndim (fun _ -> []) in
         List.iter
@@ -390,13 +384,13 @@ module Point = struct
             Array.iteri
               (fun i ki ->
                 if List.mem ki values_per_dim.(i) then ()
-                else values_per_dim.(i) <- values_per_dim.(i) @ [ki])
+                else values_per_dim.(i) <- values_per_dim.(i) @ [ ki ])
               k)
-          sf ;
+          sf;
         Array.iteri
           (fun i values_in_dim ->
             values_per_dim.(i) <- sort_dim i values_in_dim)
-          values_per_dim ;
+          values_per_dim;
         let rows : string list list =
           cartesian_product (List.map (Array.get values_per_dim) row_axes)
         in
@@ -406,14 +400,12 @@ module Point = struct
         let matrix : string list list =
           List.filter_map
             (fun (row_values : string list) ->
-              assert (List.length row_values = List.length row_axes) ;
+              assert (List.length row_values = List.length row_axes);
               (* Filter [sf] to only keep the points of the current row *)
               let sf =
                 List.fold_left2
                   (fun sf axis value -> filter_on_axis sf ~axis ~value)
-                  sf
-                  row_axes
-                  row_values
+                  sf row_axes row_values
               in
               let any_hit = ref false in
               let cells : string list =
@@ -423,14 +415,12 @@ module Point = struct
                     let sf =
                       List.fold_left2
                         (fun sf axis value -> filter_on_axis sf ~axis ~value)
-                        sf
-                        col_axes
-                        col_values
+                        sf col_axes col_values
                     in
                     match sf with
                     | [] -> ""
-                    | [(_key, value)] ->
-                        any_hit := true ;
+                    | [ (_key, value) ] ->
+                        any_hit := true;
                         value
                     | _ ->
                         (* several identical keys in [sf] *)
@@ -512,13 +502,13 @@ module Main_timings = struct
     in
     let ff_of_timings stepname (d : Def.Gc.duration) =
       [
-        ([|sname; stepname; "wall"|], d.wall);
-        ([|sname; stepname; "share"|], d.wall /. total_duration.wall);
-        ([|sname; stepname; "sys"|], d.sys);
-        ([|sname; stepname; "user"|], d.user);
-        ([|sname; stepname; "%cpu"|], (d.sys +. d.user) /. d.wall);
-        ([|sname; stepname; "%sys"|], d.sys /. d.wall);
-        ([|sname; stepname; "%user"|], d.user /. d.wall);
+        ([| sname; stepname; "wall" |], d.wall);
+        ([| sname; stepname; "share" |], d.wall /. total_duration.wall);
+        ([| sname; stepname; "sys" |], d.sys);
+        ([| sname; stepname; "user" |], d.user);
+        ([| sname; stepname; "%cpu" |], (d.sys +. d.user) /. d.wall);
+        ([| sname; stepname; "%sys" |], d.sys /. d.wall);
+        ([| sname; stepname; "%user" |], d.user /. d.wall);
       ]
     in
     let ff_steps =
@@ -532,7 +522,7 @@ module Main_timings = struct
   let pp ppf (summary_names, summaries, which_gcs) =
     let ff = build_ff summary_names summaries which_gcs in
     let x =
-      let group_of_key k = [k.(1); k.(2)] in
+      let group_of_key k = [ k.(1); k.(2) ] in
       let formatter_of_group g occurences =
         if List.exists (fun s -> String.contains s '%') g || List.mem "share" g
         then Utils.pp_percent
@@ -544,7 +534,7 @@ module Main_timings = struct
       let keep_blank =
         Array.exists (fun s -> String.contains s '%' || s = "share")
       in
-      let group_of_key k = [k.(1); k.(2)] in
+      let group_of_key k = [ k.(1); k.(2) ] in
       Point.Float.Frame.stringify_percents ff ~keep_blank ~group_of_key
     in
     let sf = Point.String.Frame.concat x y in
@@ -557,12 +547,8 @@ module Main_timings = struct
       let sort_dim i values_in_dim =
         match i with 1 -> sort_main_steps values_in_dim | _ -> values_in_dim
       in
-      Point.String.Frame.to_printbox
-        sf
-        ~col_axes:[2]
-        ~row_axes:[1; 0]
-        ~sort_dim
-        ~should_put_space_before_row
+      Point.String.Frame.to_printbox sf ~col_axes:[ 2 ] ~row_axes:[ 1; 0 ]
+        ~sort_dim ~should_put_space_before_row
       |> PrintBox_text.to_string
     in
     Fmt.pf ppf "%s" s
@@ -578,13 +564,13 @@ module Worker_timings = struct
     in
     let ff_of_timings stepname (d : Def.Gc.duration) =
       [
-        ([|sname; stepname; "wall"|], d.wall);
-        ([|sname; stepname; "share"|], d.wall /. total_duration.wall);
-        ([|sname; stepname; "sys"|], d.sys);
-        ([|sname; stepname; "user"|], d.user);
-        ([|sname; stepname; "%cpu"|], (d.sys +. d.user) /. d.wall);
-        ([|sname; stepname; "%sys"|], d.sys /. d.wall);
-        ([|sname; stepname; "%user"|], d.user /. d.wall);
+        ([| sname; stepname; "wall" |], d.wall);
+        ([| sname; stepname; "share" |], d.wall /. total_duration.wall);
+        ([| sname; stepname; "sys" |], d.sys);
+        ([| sname; stepname; "user" |], d.user);
+        ([| sname; stepname; "%cpu" |], (d.sys +. d.user) /. d.wall);
+        ([| sname; stepname; "%sys" |], d.sys /. d.wall);
+        ([| sname; stepname; "%user" |], d.user /. d.wall);
       ]
     in
     let ff_steps =
@@ -598,7 +584,7 @@ module Worker_timings = struct
   let pp ppf (summary_names, summaries, which_gcs) =
     let ff = build_ff summary_names summaries which_gcs in
     let x =
-      let group_of_key k = [k.(1); k.(2)] in
+      let group_of_key k = [ k.(1); k.(2) ] in
       let formatter_of_group g occurences =
         if List.exists (fun s -> String.contains s '%') g || List.mem "share" g
         then Utils.pp_percent
@@ -610,7 +596,7 @@ module Worker_timings = struct
       let keep_blank =
         Array.exists (fun s -> String.contains s '%' || s = "share")
       in
-      let group_of_key k = [k.(1); k.(2)] in
+      let group_of_key k = [ k.(1); k.(2) ] in
       Point.Float.Frame.stringify_percents ff ~keep_blank ~group_of_key
     in
 
@@ -623,12 +609,8 @@ module Worker_timings = struct
       let sort_dim i values_in_dim =
         match i with 1 -> sort_worker_steps values_in_dim | _ -> values_in_dim
       in
-      Point.String.Frame.to_printbox
-        sf
-        ~col_axes:[2]
-        ~row_axes:[1; 0]
-        ~sort_dim
-        ~should_put_space_before_row
+      Point.String.Frame.to_printbox sf ~col_axes:[ 2 ] ~row_axes:[ 1; 0 ]
+        ~sort_dim ~should_put_space_before_row
       |> PrintBox_text.to_string
     in
     Fmt.pf ppf "%s" s
@@ -666,63 +648,63 @@ module Worker_stats = struct
     in
     let i = float_of_int in
     [
-      ([|sname; "total duration (wall)"|], total_duration.wall);
-      ([|sname; "total duration (sys)"|], total_duration.sys);
-      ([|sname; "total duration (user)"|], total_duration.user);
-      ( [|sname; "%cpu"|],
+      ([| sname; "total duration (wall)" |], total_duration.wall);
+      ([| sname; "total duration (sys)" |], total_duration.sys);
+      ([| sname; "total duration (user)" |], total_duration.user);
+      ( [| sname; "%cpu" |],
         (total_duration.sys +. total_duration.user) /. total_duration.wall );
-      ([|sname; "%sys"|], total_duration.sys /. total_duration.wall);
-      ([|sname; "%user"|], total_duration.user /. total_duration.wall);
-      ([|sname; "objects traversed"|], w.objects_traversed |> Int63.to_float);
-      ([|sname; "suffix transert loops"|], List.length w.suffix_transfers |> i);
+      ([| sname; "%sys" |], total_duration.sys /. total_duration.wall);
+      ([| sname; "%user" |], total_duration.user /. total_duration.wall);
+      ([| sname; "objects traversed" |], w.objects_traversed |> Int63.to_float);
+      ([| sname; "suffix transert loops" |], List.length w.suffix_transfers |> i);
       (* rusage *)
-      ( [|sname; "initial maxrss (bytes)"|],
+      ( [| sname; "initial maxrss (bytes)" |],
         w.initial_maxrss |> Int64.to_float |> ( *. ) 1000. );
-      ( [|sname; "final maxrss (bytes)"|],
+      ( [| sname; "final maxrss (bytes)" |],
         last_worker_step.rusage.maxrss |> Int64.to_float |> ( *. ) 1000. );
-      ([|sname; "minflt"|], rusage.minflt |> Int64.to_float);
-      ([|sname; "majflt"|], rusage.majflt |> Int64.to_float);
-      ([|sname; "inblock"|], rusage.inblock |> Int64.to_float);
-      ([|sname; "oublock"|], rusage.oublock |> Int64.to_float);
-      ([|sname; "nvcsw"|], rusage.nvcsw |> Int64.to_float);
-      ([|sname; "nivcsw"|], rusage.nivcsw |> Int64.to_float);
+      ([| sname; "minflt" |], rusage.minflt |> Int64.to_float);
+      ([| sname; "majflt" |], rusage.majflt |> Int64.to_float);
+      ([| sname; "inblock" |], rusage.inblock |> Int64.to_float);
+      ([| sname; "oublock" |], rusage.oublock |> Int64.to_float);
+      ([| sname; "nvcsw" |], rusage.nvcsw |> Int64.to_float);
+      ([| sname; "nivcsw" |], rusage.nivcsw |> Int64.to_float);
       (* disk *)
-      ([|sname; "disk reads"|], index.nb_reads |> i);
-      ([|sname; "disk bytes read"|], index.bytes_read |> i);
-      ([|sname; "disk writes"|], index.nb_writes |> i);
-      ([|sname; "disk bytes written"|], index.bytes_written |> i);
+      ([| sname; "disk reads" |], index.nb_reads |> i);
+      ([| sname; "disk bytes read" |], index.bytes_read |> i);
+      ([| sname; "disk writes" |], index.nb_writes |> i);
+      ([| sname; "disk bytes written" |], index.bytes_written |> i);
       (* pack_store *)
-      ([|sname; "appended_hashes"|], pack_store.appended_hashes |> i);
-      ([|sname; "appended_offsets"|], pack_store.appended_offsets |> i);
-      ([|sname; "total"|], pack_store.total |> i);
-      ([|sname; "from_staging"|], pack_store.from_staging |> i);
-      ([|sname; "from_lru"|], pack_store.from_lru |> i);
-      ([|sname; "from_pack_direct"|], pack_store.from_pack_direct |> i);
-      ([|sname; "from_pack_indexed"|], pack_store.from_pack_indexed |> i);
+      ([| sname; "appended_hashes" |], pack_store.appended_hashes |> i);
+      ([| sname; "appended_offsets" |], pack_store.appended_offsets |> i);
+      ([| sname; "total" |], pack_store.total |> i);
+      ([| sname; "from_staging" |], pack_store.from_staging |> i);
+      ([| sname; "from_lru" |], pack_store.from_lru |> i);
+      ([| sname; "from_pack_direct" |], pack_store.from_pack_direct |> i);
+      ([| sname; "from_pack_indexed" |], pack_store.from_pack_indexed |> i);
       (* inode *)
-      ([|sname; "inode_add"|], inode.inode_add |> i);
-      ([|sname; "inode_remove"|], inode.inode_remove |> i);
-      ([|sname; "inode_of_seq"|], inode.inode_of_seq |> i);
-      ([|sname; "inode_of_raw"|], inode.inode_of_raw |> i);
-      ([|sname; "inode_rec_add"|], inode.inode_rec_add |> i);
-      ([|sname; "inode_rec_remove"|], inode.inode_rec_remove |> i);
-      ([|sname; "inode_to_binv"|], inode.inode_to_binv |> i);
-      ([|sname; "inode_decode_bin"|], inode.inode_decode_bin |> i);
-      ([|sname; "inode_encode_bin"|], inode.inode_encode_bin |> i);
+      ([| sname; "inode_add" |], inode.inode_add |> i);
+      ([| sname; "inode_remove" |], inode.inode_remove |> i);
+      ([| sname; "inode_of_seq" |], inode.inode_of_seq |> i);
+      ([| sname; "inode_of_raw" |], inode.inode_of_raw |> i);
+      ([| sname; "inode_rec_add" |], inode.inode_rec_add |> i);
+      ([| sname; "inode_rec_remove" |], inode.inode_rec_remove |> i);
+      ([| sname; "inode_to_binv" |], inode.inode_to_binv |> i);
+      ([| sname; "inode_decode_bin" |], inode.inode_decode_bin |> i);
+      ([| sname; "inode_encode_bin" |], inode.inode_encode_bin |> i);
       (* ocaml_gc *)
-      ([|sname; "initial heap byte"|], w.initial_heap_words * 8 |> i);
-      ([|sname; "initial top heap bytes"|], w.initial_top_heap_words * 8 |> i);
-      ( [|sname; "  final top heap bytes"|],
+      ([| sname; "initial heap byte" |], w.initial_heap_words * 8 |> i);
+      ([| sname; "initial top heap bytes" |], w.initial_top_heap_words * 8 |> i);
+      ( [| sname; "  final top heap bytes" |],
         last_worker_step.ocaml_gc.top_heap_words * 8 |> i );
-      ([|sname; "initial stack bytes"|], w.initial_stack_size * 8 |> i);
-      ( [|sname; "  final stack bytes"|],
+      ([| sname; "initial stack bytes" |], w.initial_stack_size * 8 |> i);
+      ( [| sname; "  final stack bytes" |],
         last_worker_step.ocaml_gc.stack_size * 8 |> i );
-      ([|sname; "minor_words"|], ocaml_gc.minor_words);
-      ([|sname; "promoted_words"|], ocaml_gc.promoted_words);
-      ([|sname; "major_words"|], ocaml_gc.major_words);
-      ([|sname; "minor_collections"|], ocaml_gc.minor_collections |> i);
-      ([|sname; "major_collections"|], ocaml_gc.major_collections |> i);
-      ([|sname; "compactions"|], ocaml_gc.compactions |> i);
+      ([| sname; "minor_words" |], ocaml_gc.minor_words);
+      ([| sname; "promoted_words" |], ocaml_gc.promoted_words);
+      ([| sname; "major_words" |], ocaml_gc.major_words);
+      ([| sname; "minor_collections" |], ocaml_gc.minor_collections |> i);
+      ([| sname; "major_collections" |], ocaml_gc.major_collections |> i);
+      ([| sname; "compactions" |], ocaml_gc.compactions |> i);
     ]
 
   let pp ppf (summary_names, summaries, which_gcs) =
@@ -730,8 +712,8 @@ module Worker_stats = struct
     let x =
       let group_of_key k =
         match k.(1) with
-        | "initial maxrss (bytes)" | "final maxrss (bytes)" -> ["maxrss"]
-        | _ -> [k.(1)]
+        | "initial maxrss (bytes)" | "final maxrss (bytes)" -> [ "maxrss" ]
+        | _ -> [ k.(1) ]
       in
       let formatter_of_group g occurences =
         if List.exists (fun s -> String.contains s '%') g || List.mem "share" g
@@ -744,7 +726,7 @@ module Worker_stats = struct
     in
     let y =
       let keep_blank = Array.exists (fun s -> String.contains s '%') in
-      let group_of_key k = [k.(1)] in
+      let group_of_key k = [ k.(1) ] in
       Point.Float.Frame.stringify_percents ff ~keep_blank ~group_of_key
     in
 
@@ -758,12 +740,8 @@ module Worker_stats = struct
         | _ -> false
       in
       let sort_dim _i values_in_dim = values_in_dim in
-      Point.String.Frame.to_printbox
-        sf
-        ~col_axes:[0]
-        ~row_axes:[1]
-        ~sort_dim
-        ~should_put_space_before_row
+      Point.String.Frame.to_printbox sf ~col_axes:[ 0 ] ~row_axes:[ 1 ]
+        ~sort_dim ~should_put_space_before_row
       |> PrintBox_text.to_string
     in
     Fmt.pf ppf "%s" s
@@ -773,13 +751,13 @@ module Worker_stats_per_step = struct
   let rusage_ff_of_worker_step sname stepname (step : Def.Gc.step) =
     let r = step.rusage in
     [
-      ([|sname; stepname; "maxrss"|], r.maxrss |> Int64.to_float);
-      ([|sname; stepname; "minflt"|], r.minflt |> Int64.to_float);
-      ([|sname; stepname; "majflt"|], r.majflt |> Int64.to_float);
-      ([|sname; stepname; "inblock"|], r.inblock |> Int64.to_float);
-      ([|sname; stepname; "oublock"|], r.oublock |> Int64.to_float);
-      ([|sname; stepname; "nvcsw"|], r.nvcsw |> Int64.to_float);
-      ([|sname; stepname; "nivcsw"|], r.nivcsw |> Int64.to_float);
+      ([| sname; stepname; "maxrss" |], r.maxrss |> Int64.to_float);
+      ([| sname; stepname; "minflt" |], r.minflt |> Int64.to_float);
+      ([| sname; stepname; "majflt" |], r.majflt |> Int64.to_float);
+      ([| sname; stepname; "inblock" |], r.inblock |> Int64.to_float);
+      ([| sname; stepname; "oublock" |], r.oublock |> Int64.to_float);
+      ([| sname; stepname; "nvcsw" |], r.nvcsw |> Int64.to_float);
+      ([| sname; stepname; "nivcsw" |], r.nivcsw |> Int64.to_float);
     ]
 
   let disk_ff_of_worker_step sname stepname (step : Def.Gc.step) =
@@ -787,27 +765,29 @@ module Worker_stats_per_step = struct
     let i = float_of_int in
     let j int = float_of_int int /. step.duration.wall in
     [
-      ([|sname; stepname; "reads"|], index.nb_reads |> i);
-      ([|sname; stepname; "bytes read"|], index.bytes_read |> i);
-      ([|sname; stepname; "writes"|], index.nb_writes |> i);
-      ([|sname; stepname; "bytes written"|], index.bytes_written |> i);
-      ([|sname; stepname; "reads/sec"|], index.nb_reads |> j );
-      ([|sname; stepname; "bytes read/sec"|], index.bytes_read |> j);
-      ([|sname; stepname; "writes/sec"|], index.nb_writes |> j);
-      ([|sname; stepname; "bytes written/sec"|], index.bytes_written |> j);
+      ([| sname; stepname; "reads" |], index.nb_reads |> i);
+      ([| sname; stepname; "bytes read" |], index.bytes_read |> i);
+      ([| sname; stepname; "writes" |], index.nb_writes |> i);
+      ([| sname; stepname; "bytes written" |], index.bytes_written |> i);
+      ([| sname; stepname; "reads/sec" |], index.nb_reads |> j);
+      ([| sname; stepname; "bytes read/sec" |], index.bytes_read |> j);
+      ([| sname; stepname; "writes/sec" |], index.nb_writes |> j);
+      ([| sname; stepname; "bytes written/sec" |], index.bytes_written |> j);
     ]
 
   let pack_store_ff_of_worker_step sname stepname (step : Def.Gc.step) =
     let pack_store = step.pack_store in
     let i = float_of_int in
     [
-      ([|sname; stepname; "appended_hashes"|], pack_store.appended_hashes |> i);
-      ([|sname; stepname; "appended_offsets"|], pack_store.appended_offsets |> i);
-      ([|sname; stepname; "total"|], pack_store.total |> i);
-      ([|sname; stepname; "from_staging"|], pack_store.from_staging |> i);
-      ([|sname; stepname; "from_lru"|], pack_store.from_lru |> i);
-      ([|sname; stepname; "from_pack_direct"|], pack_store.from_pack_direct |> i);
-      ( [|sname; stepname; "from_pack_indexed"|],
+      ([| sname; stepname; "appended_hashes" |], pack_store.appended_hashes |> i);
+      ( [| sname; stepname; "appended_offsets" |],
+        pack_store.appended_offsets |> i );
+      ([| sname; stepname; "total" |], pack_store.total |> i);
+      ([| sname; stepname; "from_staging" |], pack_store.from_staging |> i);
+      ([| sname; stepname; "from_lru" |], pack_store.from_lru |> i);
+      ( [| sname; stepname; "from_pack_direct" |],
+        pack_store.from_pack_direct |> i );
+      ( [| sname; stepname; "from_pack_indexed" |],
         pack_store.from_pack_indexed |> i );
     ]
 
@@ -815,30 +795,32 @@ module Worker_stats_per_step = struct
     let inode = step.inode in
     let i = float_of_int in
     [
-      ([|sname; stepname; "add"|], inode.inode_add |> i);
-      ([|sname; stepname; "remove"|], inode.inode_remove |> i);
-      ([|sname; stepname; "of_seq"|], inode.inode_of_seq |> i);
-      ([|sname; stepname; "of_raw"|], inode.inode_of_raw |> i);
-      ([|sname; stepname; "rec_add"|], inode.inode_rec_add |> i);
-      ([|sname; stepname; "rec_remove"|], inode.inode_rec_remove |> i);
-      ([|sname; stepname; "to_binv"|], inode.inode_to_binv |> i);
-      ([|sname; stepname; "decode_bin"|], inode.inode_decode_bin |> i);
-      ([|sname; stepname; "encode_bin"|], inode.inode_encode_bin |> i);
+      ([| sname; stepname; "add" |], inode.inode_add |> i);
+      ([| sname; stepname; "remove" |], inode.inode_remove |> i);
+      ([| sname; stepname; "of_seq" |], inode.inode_of_seq |> i);
+      ([| sname; stepname; "of_raw" |], inode.inode_of_raw |> i);
+      ([| sname; stepname; "rec_add" |], inode.inode_rec_add |> i);
+      ([| sname; stepname; "rec_remove" |], inode.inode_rec_remove |> i);
+      ([| sname; stepname; "to_binv" |], inode.inode_to_binv |> i);
+      ([| sname; stepname; "decode_bin" |], inode.inode_decode_bin |> i);
+      ([| sname; stepname; "encode_bin" |], inode.inode_encode_bin |> i);
     ]
 
   let ocaml_gc_ff_of_worker_step sname stepname (step : Def.Gc.step) =
     let ocaml_gc = step.ocaml_gc in
     let i = float_of_int in
     [
-      ([|sname; stepname; "heap bytes"|], ocaml_gc.top_heap_words * 8 |> i);
-      ([|sname; stepname; "top heap bytes"|], ocaml_gc.top_heap_words * 8 |> i);
-      ([|sname; stepname; "stack bytes"|], ocaml_gc.stack_size * 8 |> i);
-      ([|sname; stepname; "minor_words"|], ocaml_gc.minor_words);
-      ([|sname; stepname; "promoted_words"|], ocaml_gc.promoted_words);
-      ([|sname; stepname; "major_words"|], ocaml_gc.major_words);
-      ([|sname; stepname; "minor_collections"|], ocaml_gc.minor_collections |> i);
-      ([|sname; stepname; "major_collections"|], ocaml_gc.major_collections |> i);
-      ([|sname; stepname; "compactions"|], ocaml_gc.compactions |> i);
+      ([| sname; stepname; "heap bytes" |], ocaml_gc.top_heap_words * 8 |> i);
+      ([| sname; stepname; "top heap bytes" |], ocaml_gc.top_heap_words * 8 |> i);
+      ([| sname; stepname; "stack bytes" |], ocaml_gc.stack_size * 8 |> i);
+      ([| sname; stepname; "minor_words" |], ocaml_gc.minor_words);
+      ([| sname; stepname; "promoted_words" |], ocaml_gc.promoted_words);
+      ([| sname; stepname; "major_words" |], ocaml_gc.major_words);
+      ( [| sname; stepname; "minor_collections" |],
+        ocaml_gc.minor_collections |> i );
+      ( [| sname; stepname; "major_collections" |],
+        ocaml_gc.major_collections |> i );
+      ([| sname; stepname; "compactions" |], ocaml_gc.compactions |> i);
     ]
 
   let build_ff summary_names summaries which_gcs which_table :
@@ -859,13 +841,13 @@ module Worker_stats_per_step = struct
   let pp ppf (summary_names, summaries, which_gcs, which_table) =
     let ff = build_ff summary_names summaries which_gcs which_table in
     let x =
-      let group_of_key k = [k.(1); k.(2)] in
+      let group_of_key k = [ k.(1); k.(2) ] in
       let formatter_of_group _g occurences = Utils.create_pp_real occurences in
       Point.Float.Frame.stringify ff ~group_of_key ~formatter_of_group
     in
     let y =
       let keep_blank = Fun.const false in
-      let group_of_key k = [k.(1); k.(2)] in
+      let group_of_key k = [ k.(1); k.(2) ] in
       Point.Float.Frame.stringify_percents ff ~keep_blank ~group_of_key
     in
     let sf = Point.String.Frame.concat x y in
@@ -874,12 +856,8 @@ module Worker_stats_per_step = struct
       let sort_dim i values_in_dim =
         match i with 1 -> sort_worker_steps values_in_dim | _ -> values_in_dim
       in
-      Point.String.Frame.to_printbox
-        sf
-        ~col_axes:[2]
-        ~row_axes:[1; 0]
-        ~sort_dim
-        ~should_put_space_before_row
+      Point.String.Frame.to_printbox sf ~col_axes:[ 2 ] ~row_axes:[ 1; 0 ]
+        ~sort_dim ~should_put_space_before_row
       |> PrintBox_text.to_string
     in
     Fmt.pf ppf "%s" s
@@ -910,37 +888,38 @@ module File_sizes = struct
             List.map Int63.to_float tl |> List.fold_left ( +. ) 0. )
     in
     [
-      ([|sname; "former suffix file size"|], suffix0);
-      ([|sname; "new suffix file size"|], suffix1);
-      ([|sname; "former prefix file size"|], get "old_prefix");
-      ([|sname; "new prefix file size"|], get "prefix");
-      ([|sname; "former mapping file size"|], get "old_mapping");
-      ([|sname; "new mapping file size"|], get "mapping");
-      ([|sname; "reachable file size"|], get "reachable");
-      ([|sname; "sorted file size"|], get "sorted");
-      ([|sname; "suffix start offset progress"|], start1 -. start0);
-      ([|sname; "total file sizes before GC"|], tot0);
-      ([|sname; "total file sizes before GC + newies"|], tot0 +. (end1 -. end0));
-      ([|sname; "total file sizes after GC"|], tot1);
-      ([|sname; "total file sizes before unlink"|], tot0 +. tot1);
-      ([|sname; "suffix oldies in first worker loop"|], end0 -. start1);
-      ( [|sname; "suffix newies in first worker loop"|],
+      ([| sname; "former suffix file size" |], suffix0);
+      ([| sname; "new suffix file size" |], suffix1);
+      ([| sname; "former prefix file size" |], get "old_prefix");
+      ([| sname; "new prefix file size" |], get "prefix");
+      ([| sname; "former mapping file size" |], get "old_mapping");
+      ([| sname; "new mapping file size" |], get "mapping");
+      ([| sname; "reachable file size" |], get "reachable");
+      ([| sname; "sorted file size" |], get "sorted");
+      ([| sname; "suffix start offset progress" |], start1 -. start0);
+      ([| sname; "total file sizes before GC" |], tot0);
+      ( [| sname; "total file sizes before GC + newies" |],
+        tot0 +. (end1 -. end0) );
+      ([| sname; "total file sizes after GC" |], tot1);
+      ([| sname; "total file sizes before unlink" |], tot0 +. tot1);
+      ([| sname; "suffix oldies in first worker loop" |], end0 -. start1);
+      ( [| sname; "suffix newies in first worker loop" |],
         first_loop -. (end0 -. start1) );
-      ([|sname; "suffix newies in extra worker loops"|], extra_loops);
-      ( [|sname; "suffix newies in finalise"|],
+      ([| sname; "suffix newies in extra worker loops" |], extra_loops);
+      ( [| sname; "suffix newies in finalise" |],
         suffix1 -. first_loop -. extra_loops );
     ]
 
   let pp ppf (summary_names, summaries, which_gcs) =
     let ff = build_ff summary_names summaries which_gcs in
     let x =
-      let group_of_key k = [k.(1)] in
+      let group_of_key k = [ k.(1) ] in
       let formatter_of_group _g _occurences = Utils.pp_real `M in
       Point.Float.Frame.stringify ff ~group_of_key ~formatter_of_group
     in
     let y =
       let keep_blank = Fun.const false in
-      let group_of_key k = [k.(1)] in
+      let group_of_key k = [ k.(1) ] in
       Point.Float.Frame.stringify_percents ff ~keep_blank ~group_of_key
     in
     let sf = Point.String.Frame.concat x y in
@@ -952,12 +931,8 @@ module File_sizes = struct
         | _ -> false
       in
       let sort_dim _i values_in_dim = values_in_dim in
-      Point.String.Frame.to_printbox
-        sf
-        ~col_axes:[0]
-        ~row_axes:[1]
-        ~sort_dim
-        ~should_put_space_before_row
+      Point.String.Frame.to_printbox sf ~col_axes:[ 0 ] ~row_axes:[ 1 ]
+        ~sort_dim ~should_put_space_before_row
       |> PrintBox_text.to_string
     in
     Fmt.pf ppf "%s" s
@@ -970,81 +945,82 @@ module Main_activity = struct
     let total_duration = (Span.Map.find `Block main.span).cumu_duration.diff in
     let block_count = float_of_int main.block_count in
     [
-      ([|sname; "total duration (wall)"|], total_duration);
-      ( [|sname; "total duration (sys)"|],
+      ([| sname; "total duration (wall)" |], total_duration);
+      ( [| sname; "total duration (sys)" |],
         main.rusage.stime.value_after_commit.diff );
-      ( [|sname; "total duration (user)"|],
+      ( [| sname; "total duration (user)" |],
         main.rusage.utime.value_after_commit.diff );
-      ([|sname; "%cpu"|], main.cpu_usage.mean);
-      ( [|sname; "max commit duration"|],
+      ([| sname; "%cpu" |], main.cpu_usage.mean);
+      ( [| sname; "max commit duration" |],
         (Span.Map.find `Commit main.span).duration.max_value |> fst );
-      ( [|sname; "mean commit duration"|],
+      ( [| sname; "mean commit duration" |],
         (Span.Map.find `Commit main.span).duration.mean );
-      ( [|sname; "max find duration"|],
+      ( [| sname; "max find duration" |],
         (Span.Map.find (`Frequent_op `Find) main.span).duration.max_value |> fst
       );
-      ( [|sname; "mean find duration"|],
+      ( [| sname; "mean find duration" |],
         (Span.Map.find (`Frequent_op `Find) main.span).duration.mean );
-      ([|sname; "blocks"|], block_count);
-      ([|sname; "TZ-Transactions"|], main.block_specs.tzop_count_tx.value.diff);
-      ([|sname; "TZ-Operations"|], main.block_specs.tzop_count.value.diff);
-      ( [|sname; "last block level"|],
+      ([| sname; "blocks" |], block_count);
+      ([| sname; "TZ-Transactions" |], main.block_specs.tzop_count_tx.value.diff);
+      ([| sname; "TZ-Operations" |], main.block_specs.tzop_count.value.diff);
+      ( [| sname; "last block level" |],
         main.block_specs.level_over_blocks |> List.rev |> List.hd );
-      ([|sname; "disk reads"|], main.index.nb_reads.value_after_commit.diff);
-      ( [|sname; "disk bytes read"|],
+      ([| sname; "disk reads" |], main.index.nb_reads.value_after_commit.diff);
+      ( [| sname; "disk bytes read" |],
         main.index.bytes_read.value_after_commit.diff );
-      ([|sname; "disk writes"|], main.index.nb_writes.value_after_commit.diff);
-      ( [|sname; "disk bytes written"|],
+      ([| sname; "disk writes" |], main.index.nb_writes.value_after_commit.diff);
+      ( [| sname; "disk bytes written" |],
         main.index.bytes_written.value_after_commit.diff );
-      ([|sname; "minflt"|], main.rusage.minflt.value_after_commit.diff);
-      ([|sname; "majflt"|], main.rusage.majflt.value_after_commit.diff);
-      ([|sname; "inblock"|], main.rusage.inblock.value_after_commit.diff);
-      ([|sname; "oublock"|], main.rusage.oublock.value_after_commit.diff);
-      ([|sname; "nvcsw"|], main.rusage.nvcsw.value_after_commit.diff);
-      ([|sname; "nivcsw"|], main.rusage.nivcsw.value_after_commit.diff);
-      ([|sname; "blocks/sec"|], float_of_int main.block_count /. total_duration);
-      ( [|sname; "TZ-Transactions/sec"|],
+      ([| sname; "minflt" |], main.rusage.minflt.value_after_commit.diff);
+      ([| sname; "majflt" |], main.rusage.majflt.value_after_commit.diff);
+      ([| sname; "inblock" |], main.rusage.inblock.value_after_commit.diff);
+      ([| sname; "oublock" |], main.rusage.oublock.value_after_commit.diff);
+      ([| sname; "nvcsw" |], main.rusage.nvcsw.value_after_commit.diff);
+      ([| sname; "nivcsw" |], main.rusage.nivcsw.value_after_commit.diff);
+      ( [| sname; "blocks/sec" |],
+        float_of_int main.block_count /. total_duration );
+      ( [| sname; "TZ-Transactions/sec" |],
         main.block_specs.tzop_count_tx.value.diff /. total_duration );
-      ( [|sname; "TZ-Operations/sec"|],
+      ( [| sname; "TZ-Operations/sec" |],
         main.block_specs.tzop_count.value.diff /. total_duration );
-      ( [|sname; "disk reads/sec"|],
+      ( [| sname; "disk reads/sec" |],
         main.index.nb_reads.value_after_commit.diff /. total_duration );
-      ( [|sname; "disk bytes read/sec"|],
+      ( [| sname; "disk bytes read/sec" |],
         main.index.bytes_read.value_after_commit.diff /. total_duration );
-      ( [|sname; "disk writes/sec"|],
+      ( [| sname; "disk writes/sec" |],
         main.index.nb_writes.value_after_commit.diff /. total_duration );
-      ( [|sname; "disk bytes write/sec"|],
+      ( [| sname; "disk bytes write/sec" |],
         main.index.bytes_written.value_after_commit.diff /. total_duration );
-      ( [|sname; "minflt/sec"|],
+      ( [| sname; "minflt/sec" |],
         main.rusage.minflt.value_after_commit.diff /. total_duration );
-      ( [|sname; "majflt/sec"|],
+      ( [| sname; "majflt/sec" |],
         main.rusage.majflt.value_after_commit.diff /. total_duration );
-      ( [|sname; "inblock/sec"|],
+      ( [| sname; "inblock/sec" |],
         main.rusage.inblock.value_after_commit.diff /. total_duration );
-      ( [|sname; "oublock/sec"|],
+      ( [| sname; "oublock/sec" |],
         main.rusage.oublock.value_after_commit.diff /. total_duration );
-      ( [|sname; "nvcsw/sec"|],
+      ( [| sname; "nvcsw/sec" |],
         main.rusage.nvcsw.value_after_commit.diff /. total_duration );
-      ( [|sname; "nivcsw/sec"|],
+      ( [| sname; "nivcsw/sec" |],
         main.rusage.nivcsw.value_after_commit.diff /. total_duration );
-      ( [|sname; "minflt/block"|],
+      ( [| sname; "minflt/block" |],
         main.rusage.minflt.value_after_commit.diff /. block_count );
-      ( [|sname; "majflt/block"|],
+      ( [| sname; "majflt/block" |],
         main.rusage.majflt.value_after_commit.diff /. block_count );
-      ( [|sname; "inblock/block"|],
+      ( [| sname; "inblock/block" |],
         main.rusage.inblock.value_after_commit.diff /. block_count );
-      ( [|sname; "oublock/block"|],
+      ( [| sname; "oublock/block" |],
         main.rusage.oublock.value_after_commit.diff /. block_count );
-      ( [|sname; "nvcsw/block"|],
+      ( [| sname; "nvcsw/block" |],
         main.rusage.nvcsw.value_after_commit.diff /. block_count );
-      ( [|sname; "nivcsw/block"|],
+      ( [| sname; "nivcsw/block" |],
         main.rusage.nivcsw.value_after_commit.diff /. block_count );
     ]
 
   let pp ppf (summary_names, summaries, which_gcs) =
     let ff = build_ff summary_names summaries which_gcs in
     let x =
-      let group_of_key k = [k.(1)] in
+      let group_of_key k = [ k.(1) ] in
       let formatter_of_group g occurences =
         if List.exists (fun s -> String.contains s '%') g || List.mem "share" g
         then Utils.pp_percent
@@ -1058,7 +1034,7 @@ module Main_activity = struct
       let keep_blank =
         Array.exists (fun s -> String.contains s '%' || s == "last block level")
       in
-      let group_of_key k = [k.(1)] in
+      let group_of_key k = [ k.(1) ] in
       Point.Float.Frame.stringify_percents ff ~keep_blank ~group_of_key
     in
 
@@ -1069,12 +1045,8 @@ module Main_activity = struct
         | _ -> false
       in
       let sort_dim _i values_in_dim = values_in_dim in
-      Point.String.Frame.to_printbox
-        sf
-        ~col_axes:[0]
-        ~row_axes:[1]
-        ~sort_dim
-        ~should_put_space_before_row
+      Point.String.Frame.to_printbox sf ~col_axes:[ 0 ] ~row_axes:[ 1 ]
+        ~sort_dim ~should_put_space_before_row
       |> PrintBox_text.to_string
     in
     Fmt.pf ppf "%s" s
@@ -1082,14 +1054,12 @@ end
 
 let pp_gc ppf (summary_names, summaries, which_gcs) =
   let setup =
-    Trace_stats_summary_pp.Table0.box_of_summaries_config
-      summary_names
+    Trace_stats_summary_pp.Table0.box_of_summaries_config summary_names
       summaries
     |> Pb.matrix_with_column_spacers |> Pb.grid_l ~bars:false
     |> PrintBox_text.to_string
   in
-  Format.fprintf
-    ppf
+  Format.fprintf ppf
     {|-- Config / Setup --
 %s
 
@@ -1125,8 +1095,7 @@ Hint: [total file sizes before GC + newies] vs [total file sizes after GC] gives
 
 -- Worker's ocaml_gc stats per step --
 %a|}
-    setup
-    Main_activity.pp
+    setup Main_activity.pp
     (summary_names, summaries, which_gcs)
     File_sizes.pp
     (summary_names, summaries, which_gcs)

@@ -26,13 +26,12 @@
 open Cmdliner
 
 let deprecated_info = (Term.info [@alert "-deprecated"])
-
 let deprecated_exit = (Term.exit [@alert "-deprecated"])
-
 let deprecated_eval_choice = (Term.eval_choice [@alert "-deprecated"])
 
 module Rawdef = Tezos_context_recording.Raw_actions_trace_definition
 module Summary = Tezos_context_replay.Trace_raw_actions_summary
+
 module Trace_raw_actions_to_replayable =
   Tezos_context_replay.Raw_trace_actions_to_replayable
 
@@ -43,32 +42,27 @@ let now_s () = Mtime.Span.to_s (Mtime_clock.elapsed ())
 let reporter ?(prefix = "") () =
   let report src level ~over k msgf =
     let k _ =
-      over () ;
+      over ();
       k ()
     in
     let ppf = Fmt.stderr in
     let with_stamp h _tags k fmt =
       let dt = now_s () in
-      Fmt.kpf
-        k
-        ppf
+      Fmt.kpf k ppf
         ("%s%+04.3fs %a %a @[" ^^ fmt ^^ "@]@.")
-        prefix
-        dt
-        Logs_fmt.pp_header
-        (level, h)
+        prefix dt Logs_fmt.pp_header (level, h)
         Fmt.(styled `Magenta string)
         (Logs.Src.name src)
     in
     msgf @@ fun ?header ?tags fmt -> with_stamp header tags k fmt
   in
-  {Logs.report}
+  { Logs.report }
 
 (* Initialize the log system. *)
 let setup_log style_renderer level =
-  Fmt_tty.setup_std_outputs ?style_renderer () ;
-  Logs.set_level level ;
-  Logs.set_reporter (reporter ()) ;
+  Fmt_tty.setup_std_outputs ?style_renderer ();
+  Logs.set_level level;
+  Logs.set_reporter (reporter ());
   ()
 
 let summarise path =
@@ -78,32 +72,32 @@ let to_replayable () path block_level_of_first_opt block_level_of_last_opt
     block_idx_of_first_opt block_count_opt =
   let first =
     match (block_idx_of_first_opt, block_level_of_first_opt) with
-    | (None, None) -> `Idx 0
-    | (Some _, Some _) ->
+    | None, None -> `Idx 0
+    | Some _, Some _ ->
         invalid_arg
           "block-idx-of-first and block-level-of-first must not be used \
            together"
-    | (Some i, None) -> `Idx i
-    | (None, Some i) -> `Level i
+    | Some i, None -> `Idx i
+    | None, Some i -> `Level i
   in
   let last =
     match (block_count_opt, block_level_of_last_opt) with
-    | (None, None) -> `End
-    | (Some _, Some _) ->
+    | None, None -> `End
+    | Some _, Some _ ->
         invalid_arg
           "block-count and block-level-of-last must not be used together"
-    | (Some i, None) -> `Count i
-    | (None, Some i) -> `Level i
+    | Some i, None -> `Count i
+    | None, Some i -> `Level i
   in
-  Lwt_main.run (Trace_raw_actions_to_replayable.run ~first ~last path stdout) ;
+  Lwt_main.run (Trace_raw_actions_to_replayable.run ~first ~last path stdout);
   flush stdout
 
 let list path =
   Rawdef.trace_files_of_trace_directory path
   |> List.iter (fun (path, _) ->
-         Fmt.pr "Reading %s\n" path ;
-         let (_, (), row_seq) = Rawdef.open_reader path in
-         Seq.iter (Fmt.pr "%a\n" (Repr.pp Rawdef.row_t)) row_seq) ;
+         Fmt.pr "Reading %s\n" path;
+         let _, (), row_seq = Rawdef.open_reader path in
+         Seq.iter (Fmt.pr "%a\n" (Repr.pp Rawdef.row_t)) row_seq);
   Fmt.pr "%!"
 
 let classify path =
@@ -130,25 +124,25 @@ let term_to_rep =
 
   let arg_block_level_of_first =
     let open Arg in
-    let doc = Arg.info ~doc:"" ["block-level-of-first"] in
+    let doc = Arg.info ~doc:"" [ "block-level-of-first" ] in
     let a = opt (some int) None doc in
     value a
   in
   let arg_block_level_of_last =
     let open Arg in
-    let doc = Arg.info ~doc:"" ["block-level-of-last"] in
+    let doc = Arg.info ~doc:"" [ "block-level-of-last" ] in
     let a = opt (some int) None doc in
     value a
   in
   let arg_block_idx_of_first =
     let open Arg in
-    let doc = Arg.info ~doc:"" ["block-idx-of-first"] in
+    let doc = Arg.info ~doc:"" [ "block-idx-of-first" ] in
     let a = opt (some int) None doc in
     value a
   in
   let arg_block_count =
     let open Arg in
-    let doc = Arg.info ~doc:"" ["block-count"] in
+    let doc = Arg.info ~doc:"" [ "block-count" ] in
     let a = opt (some int) None doc in
     value a
   in
@@ -189,7 +183,8 @@ let () =
 
   let man =
     [
-      `P "From raw actions trace (directory) to replayable actions trace (file).";
+      `P
+        "From raw actions trace (directory) to replayable actions trace (file).";
       `S "EXAMPLE";
       `P
         "manage_actions.exe to-replayable ./raw_actions/ \
@@ -200,15 +195,16 @@ let () =
     deprecated_info ~man ~doc:"Replayable Actions Trace" "to-replayable"
   in
 
-  let man = [`P "List the operations from a raw actions trace (directory)."] in
+  let man =
+    [ `P "List the operations from a raw actions trace (directory)." ]
+  in
   let l = deprecated_info ~man ~doc:"List Raw Actions" "list" in
 
-  let man = [`P "Expose the type (RO, RW or Misc) of a raw trace."] in
+  let man = [ `P "Expose the type (RO, RW or Misc) of a raw trace." ] in
   let m = deprecated_info ~man ~doc:"Check raw trace type" "classify" in
 
   deprecated_exit
-  @@ deprecated_eval_choice
-       (term_summarise, i)
+  @@ deprecated_eval_choice (term_summarise, i)
        [
          (term_summarise, j);
          (term_to_rep, k);

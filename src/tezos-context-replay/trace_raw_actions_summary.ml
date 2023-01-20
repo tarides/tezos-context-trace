@@ -25,14 +25,13 @@
 
 (** A quick and dirty statistics computation from a raw actions trace *)
 
-(** Use Stdlib.Option instead of the Tezos one. *)
 module Option = Stdlib.Option
+(** Use Stdlib.Option instead of the Tezos one. *)
 
-(** Use Stdlib.List instead of the Tezos one. *)
 module List = Stdlib.List
+(** Use Stdlib.List instead of the Tezos one. *)
 
 module Def = Tezos_context_recording.Raw_actions_trace_definition
-
 module Trace_common = Tezos_context_recording.Trace_common
 (* TODO: Move [Trace_common] to replay *)
 
@@ -113,13 +112,13 @@ module Op = struct
 
     let all : t list = List.init (max + 1) (fun i -> of_enum i |> Option.get)
 
-    let to_string : [< t] -> string =
+    let to_string : [< t ] -> string =
      fun v ->
       match String.split_on_char '"' (Irmin.Type.to_string t v) with
-      | [""; s; ""] -> s |> String.lowercase_ascii
+      | [ ""; s; "" ] -> s |> String.lowercase_ascii
       | _ -> Fmt.failwith "Could not encode span name to json"
 
-    let of_string : string -> (t, [`Msg of string]) result =
+    let of_string : string -> (t, [ `Msg of string ]) result =
      fun s ->
       let s = "\"" ^ String.capitalize_ascii s ^ "\"" in
       match Irmin.Type.of_string t s with Ok v -> Ok v | Error _ as e -> e
@@ -229,7 +228,7 @@ module Op_int_map = Op.Make_map (struct
   type t = int [@@deriving repr]
 end)
 
-type commit_info = {lvl : int; ops : int} [@@deriving repr]
+type commit_info = { lvl : int; ops : int } [@@deriving repr]
 
 type segment_info = {
   timestamp_before : float;
@@ -252,7 +251,7 @@ type file_info = {
 }
 [@@deriving repr]
 
-type t = {rws : file_info list; ros : file_info list; miscs : file_info list}
+type t = { rws : file_info list; ros : file_info list; miscs : file_info list }
 [@@deriving repr]
 
 let misc_folder =
@@ -267,42 +266,42 @@ let ops_per_segment_folder =
   let accumulate (older_segments_rev, (timestamp_before, ops)) row =
     let key = Op.Key.of_row row in
     let ops =
-      Op_int_map.update
-        key
+      Op_int_map.update key
         (function None -> Some 1 | Some i -> Some (i + 1))
         ops
     in
     (match row with
     | Def.Init (true, ()) -> is_ro := true
     | Init _ -> is_ro := false
-    | _ -> ()) ;
+    | _ -> ());
     let is_concluding =
       match row with
-      | Def.Commit (((_, None, _), _), {after; _}) -> `Yes (`Commit None, after)
-      | Commit (((_, Some message, _), _), {after; _}) ->
-          let (lvl, ops) =
+      | Def.Commit (((_, None, _), _), { after; _ }) ->
+          `Yes (`Commit None, after)
+      | Commit (((_, Some message, _), _), { after; _ }) ->
+          let lvl, ops =
             match
               String.split_on_char ',' message
               |> List.map String.trim
               |> List.map (String.split_on_char ' ')
             with
-            | [["lvl"; lvl]; ["fit"; _]; ["prio"; _]; [ops; "ops"]] ->
+            | [ [ "lvl"; lvl ]; [ "fit"; _ ]; [ "prio"; _ ]; [ ops; "ops" ] ] ->
                 (int_of_string lvl, int_of_string ops)
             | _ -> Fmt.failwith "Could not parse commit message: `%s`" message
           in
-          `Yes (`Commit (Some {lvl; ops}), after)
+          `Yes (`Commit (Some { lvl; ops }), after)
       | Commit_genesis_end (_, after) -> `Yes (`Commit_genesis_end, after)
-      | Checkout (_, {after; _}) when !is_ro -> `Yes (`Checkout, after)
-      | Checkout_exn (_, {after; _}) when !is_ro -> `Yes (`Checkout, after)
-      | Sync {after; _} -> `Yes (`Sync, after)
-      | Dump_context {after; _} -> `Yes (`Dump_context, after)
+      | Checkout (_, { after; _ }) when !is_ro -> `Yes (`Checkout, after)
+      | Checkout_exn (_, { after; _ }) when !is_ro -> `Yes (`Checkout, after)
+      | Sync { after; _ } -> `Yes (`Sync, after)
+      | Dump_context { after; _ } -> `Yes (`Dump_context, after)
       | _ -> `No
     in
     match is_concluding with
     | `No -> (older_segments_rev, (timestamp_before, ops))
     | `Yes (concluding_op, t) ->
         let older_segments_rev =
-          {timestamp_before; timestamp_after = t; concluding_op; ops}
+          { timestamp_before; timestamp_after = t; concluding_op; ops }
           :: older_segments_rev
         in
         (older_segments_rev, (t, Op_int_map.empty))
@@ -324,7 +323,9 @@ let ops_per_segment_folder =
   Trace_common.Parallel_folders.folder acc0 accumulate finalise
 
 let summarise' pid (row_seq : Def.row Seq.t) =
-  let construct op_count info_per_segment = {op_count; pid; info_per_segment} in
+  let construct op_count info_per_segment =
+    { op_count; pid; info_per_segment }
+  in
   let pf0 =
     let open Trace_common.Parallel_folders in
     open_ construct |+ misc_folder |+ ops_per_segment_folder |> seal
@@ -333,8 +334,8 @@ let summarise' pid (row_seq : Def.row Seq.t) =
   |> Trace_common.Parallel_folders.finalise
 
 let parse_trace pid p =
-  Logs.app (fun l -> l "Parsing trace: %s" p) ;
-  let (_, (), row_seq) = Def.open_reader p in
+  Logs.app (fun l -> l "Parsing trace: %s" p);
+  let _, (), row_seq = Def.open_reader p in
   summarise' pid row_seq
 
 let parse_directory prefix =
@@ -352,6 +353,6 @@ let parse_directory prefix =
     List.filter (fun (p, _) -> Def.type_of_file p = `Misc) traces
     |> List.map snd
   in
-  {ros; rws; miscs}
+  { ros; rws; miscs }
 
 let summarise directory_path = parse_directory directory_path

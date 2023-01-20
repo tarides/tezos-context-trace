@@ -46,13 +46,12 @@ module Pb = struct
     |> Array.to_list |> List.map Array.to_list
 
   let matrix_to_text m = List.map (List.map PrintBox.text) m
-
   let align_matrix where = List.map (List.map (PrintBox.align ~h:where ~v:`Top))
 
   (** Dirty trick to only have vertical bars, and not the horizontal ones *)
   let matrix_with_column_spacers =
     let rec interleave sep = function
-      | ([_] | []) as l -> l
+      | ([ _ ] | []) as l -> l
       | hd :: tl -> hd :: sep :: interleave sep tl
     in
     List.map (fun l ->
@@ -60,8 +59,7 @@ module Pb = struct
 end
 
 let fprintf_result ppf =
-  Format.fprintf
-    ppf
+  Format.fprintf ppf
     {|<details>
 <summary> Setups </summary>
 
@@ -94,10 +92,10 @@ Types of curves:
 
 type summary = Summary.t
 
+type scalar_format_fixed =
+  [ `SM | `S3 | `Sm | `Su | `RG | `RM | `Ri | `R3 | `P | `S ]
 (** Seconds minutes, Seconds 3 digits, Seconds milli, Seconds micro, Real giga,
     Real mega, Real as integer, Real 3 digits, Percent *)
-type scalar_format_fixed =
-  [`SM | `S3 | `Sm | `Su | `RG | `RM | `Ri | `R3 | `P | `S]
 
 let pp_scalar_fixed ppf (format, v) =
   if Float.is_nan v then Format.fprintf ppf "n/a"
@@ -117,13 +115,13 @@ let pp_scalar_fixed ppf (format, v) =
     | `Ri -> Format.fprintf ppf "%#d" (Float.round v |> int_of_float)
     | `R3 -> Format.fprintf ppf "%.3f" v
     | `P -> Format.fprintf ppf "%.0f%%" (v *. 100.)
-    | `S -> Utils.create_pp_seconds [v] ppf v
+    | `S -> Utils.create_pp_seconds [ v ] ppf v
 
 (** Summary *)
 
 module Table0 = struct
   module MsgSet = Set.Make (struct
-    type t = [`Key of string | `Message]
+    type t = [ `Key of string | `Message ]
 
     let compare = compare
   end)
@@ -203,11 +201,11 @@ module Table0 = struct
     | `Os_type -> s.header.os_type
     | `Big_endian -> string_of_bool s.header.big_endian
     | `Runtime_params ->
-        let outs = ["a"; "s"; "i"; "o"; "O"; "l"; "M"; "m"; "n"] in
+        let outs = [ "a"; "s"; "i"; "o"; "O"; "l"; "M"; "m"; "n" ] in
         Stdlib.String.split_on_char ',' s.header.runtime_parameters
         |> List.filter_map (fun s ->
                match Stdlib.String.split_on_char '=' s with
-               | [k; _v] when Stdlib.List.mem k outs -> None
+               | [ k; _v ] when Stdlib.List.mem k outs -> None
                | _ -> Some s)
         |> String.concat ","
     | `Backend_type -> (
@@ -220,14 +218,8 @@ module Table0 = struct
     | `Timeofday ->
         let open Unix in
         let t = gmtime s.header.timeofday in
-        Printf.sprintf
-          "%04d/%02d/%02d %02d:%02d:%02d (GMT)"
-          (1900 + t.tm_year)
-          (t.tm_mon + 1)
-          t.tm_mday
-          t.tm_hour
-          t.tm_min
-          t.tm_sec
+        Printf.sprintf "%04d/%02d/%02d %02d:%02d:%02d (GMT)" (1900 + t.tm_year)
+          (t.tm_mon + 1) t.tm_mday t.tm_hour t.tm_min t.tm_sec
     | `Store_type -> (
         match s.header.config.store_type with
         | `Pack -> "pack"
@@ -261,21 +253,19 @@ module Table0 = struct
         | Ok kv ->
             List.fold_left
               (fun acc (json_key, _) -> MsgSet.add (`Key json_key) acc)
-              set
-              kv
+              set kv
         | _ -> MsgSet.add `Message set)
 
   let extract_all_keys summaries =
     let key_set =
       List.fold_left
         (fun acc s -> extract_keys_from s acc)
-        MsgSet.empty
-        summaries
+        MsgSet.empty summaries
     in
     let keys = MsgSet.to_seq key_set |> List.of_seq |> List.fast_sort compare in
     (keys
-      : [`Message | `Key of string] list
-      :> [> `Message | `Key of string] list)
+      : [ `Message | `Key of string ] list
+      :> [> `Message | `Key of string ] list)
 
   let is_same_value length row =
     let rec find_difference values ((_, value) as acc) =
@@ -307,9 +297,9 @@ module Table0 = struct
 
   let box_of_summaries_config summary_names (summaries : summary list) =
     let summary_name_length = List.length summaries in
-    let row0 = ["" :: summary_names] in
+    let row0 = [ "" :: summary_names ] in
     let separator_row =
-      [List.init (summary_name_length + 1) (Fun.const "--")]
+      [ List.init (summary_name_length + 1) (Fun.const "--") ]
     in
     let summary_config_entries =
       extract_all_keys summaries @ static_summary_config_entries
@@ -435,9 +425,8 @@ module Table1 = struct
       `Data (`P, "mean CPU usage", mean_cpu_usage);
     ]
 
-  type data_row = [`Data of scalar_format_fixed * string * float list]
-
-  type section_row = [`Section of string]
+  type data_row = [ `Data of scalar_format_fixed * string * float list ]
+  type section_row = [ `Section of string ]
 
   let cells_of_data_row (`Data (scalar_format, row_name, scalars) : data_row) =
     let v0 = Stdlib.List.hd scalars in
@@ -466,8 +455,8 @@ module Table1 = struct
 end
 
 module Table2 = struct
-  (** total, min, max, avg, avg per sec *)
   type variable = float * float * float * float * float
+  (** total, min, max, avg, avg per sec *)
 
   type summary_floor =
     [ `Spacer
@@ -479,7 +468,7 @@ module Table2 = struct
   let create_header_rows summaries =
     let only_one_summary = List.length summaries = 1 in
     [
-      ("" :: (if only_one_summary then [] else [""]))
+      ("" :: (if only_one_summary then [] else [ "" ]))
       @ [
           "total";
           "min per block";
@@ -496,8 +485,7 @@ module Table2 = struct
      fun variable_of_summary ->
       Stdlib.List.map2
         (fun sname s -> (sname, variable_of_summary s))
-        summary_names
-        summaries
+        summary_names summaries
     in
     let pb :
         ?use_max:bool ->
@@ -506,10 +494,7 @@ module Table2 = struct
         string ->
         (summary -> Summary.bag_stat) ->
         summary_floor =
-     fun ?(use_max = false)
-         ?(scale = 1.)
-         ?(f = (`RM, `Ri, `R3))
-         stat_name
+     fun ?(use_max = false) ?(scale = 1.) ?(f = (`RM, `Ri, `R3)) stat_name
          lbs_of_summary ->
       let variables =
         zip (fun s ->
@@ -524,7 +509,7 @@ module Table2 = struct
       in
       `Data (f, stat_name, variables)
     in
-    let span_occu_per_block : [< Span.Key.t] -> summary_floor =
+    let span_occu_per_block : [< Span.Key.t ] -> summary_floor =
      fun op ->
       let name = Fmt.str "%s count" (Span.Key.to_string op) in
       let op = (op :> Span.Key.t) in
@@ -541,7 +526,7 @@ module Table2 = struct
       in
       `Data ((`Ri, `Ri, `R3), name, variables)
     in
-    [`Spacer]
+    [ `Spacer ]
     @ List.map span_occu_per_block Span.Key.all_atoms_seen
     @ [
         `Spacer;
@@ -599,11 +584,7 @@ module Table2 = struct
         `Spacer;
         pb "rusage.utime" ~f:(`S, `S, `S) (fun s -> s.rusage.utime);
         pb "rusage.stime" ~f:(`S, `S, `S) (fun s -> s.rusage.stime);
-        pb
-          ~use_max:true
-          "rusage.maxrss"
-          ~scale:1000.
-          ~f:(`RG, `RG, `RG)
+        pb ~use_max:true "rusage.maxrss" ~scale:1000. ~f:(`RG, `RG, `RG)
           (fun s -> s.rusage.maxrss);
         pb "rusage.minflt" (fun s -> s.rusage.minflt);
         pb ~f:(`Ri, `Ri, `R3) "rusage.majflt" (fun s -> s.rusage.majflt);
@@ -651,7 +632,7 @@ module Table2 = struct
       List.mapi
         (fun row_idx (summary_name, variable) ->
           let a = Pb.text (if row_idx = 0 then floor_name else "") in
-          let b = if only_one_summary then [] else [Pb.text summary_name] in
+          let b = if only_one_summary then [] else [ Pb.text summary_name ] in
           let c =
             let total, min, max, avg, avg_ps = variable in
             [
@@ -669,13 +650,13 @@ module Table2 = struct
 
   let matrix_of_floor col_count = function
     | `Spacer ->
-        [Stdlib.List.init col_count (Fun.const "")] |> Pb.matrix_to_text
+        [ Stdlib.List.init col_count (Fun.const "") ] |> Pb.matrix_to_text
     | `Data _ as floor -> matrix_of_data_floor floor
 end
 
 module Table3 = struct
-  (** cumu, share, min, max, avg *)
   type variable = float * float * float * float * float
+  (** cumu, share, min, max, avg *)
 
   type summary_floor =
     [ `Spacer
@@ -687,8 +668,8 @@ module Table3 = struct
   let create_header_rows summaries =
     let only_one_summary = List.length summaries = 1 in
     [
-      ("" :: (if only_one_summary then [] else [""]))
-      @ ["cumu"; "share"; "min"; "max"; "avg"];
+      ("" :: (if only_one_summary then [] else [ "" ]))
+      @ [ "cumu"; "share"; "min"; "max"; "avg" ];
     ]
     |> Pb.matrix_to_text |> Pb.align_matrix `Center
 
@@ -698,8 +679,7 @@ module Table3 = struct
      fun variable_of_summary ->
       Stdlib.List.map2
         (fun sname s -> (sname, variable_of_summary s))
-        summary_names
-        summaries
+        summary_names summaries
     in
 
     let v : ?f:_ -> string -> (summary -> Summary.bag_stat) -> summary_floor =
@@ -716,7 +696,7 @@ module Table3 = struct
           let vs = s.cpu_usage in
           (Float.nan, Float.nan, fst vs.min_value, fst vs.max_value, vs.mean))
     in
-    let span_durations : ?f:_ -> [< Span.Key.t] -> summary_floor =
+    let span_durations : ?f:_ -> [< Span.Key.t ] -> summary_floor =
      fun ?(f = (`Sm, `Su)) op ->
       let name = Fmt.str "%s duration (s)" (Span.Key.to_string op) in
       let op = (op :> Span.Key.t) in
@@ -737,8 +717,7 @@ module Table3 = struct
       span_durations ~f:(`S, `S) `Commit;
       `Spacer;
     ]
-    @ List.map
-        span_durations
+    @ List.map span_durations
         (List.filter (( <> ) (`Frequent_op `Init)) Span.Key.all_frequent_ops)
     @ [
         span_durations ~f:(`S, `S) (`Frequent_op `Init);
@@ -790,7 +769,7 @@ module Table3 = struct
       List.mapi
         (fun row_idx (summary_name, variable) ->
           let a = Pb.text (if row_idx = 0 then floor_name else "") in
-          let b = if only_one_summary then [] else [Pb.text summary_name] in
+          let b = if only_one_summary then [] else [ Pb.text summary_name ] in
           let c =
             let cumu, _share, min, max, avg = variable in
             [
@@ -808,22 +787,22 @@ module Table3 = struct
 
   let matrix_of_floor col_count = function
     | `Spacer ->
-        [Stdlib.List.init col_count (Fun.const "")] |> Pb.matrix_to_text
+        [ Stdlib.List.init col_count (Fun.const "") ] |> Pb.matrix_to_text
     | `Data _ as floor -> matrix_of_data_floor floor
 end
 
 (** Curves *)
 module Table4 = struct
+  type scalar_format_auto = [ `R | `S ]
   (** Real / Seconds *)
-  type scalar_format_auto = [`R | `S]
 
-  type scalar_format = [scalar_format_auto | scalar_format_fixed]
+  type scalar_format = [ scalar_format_auto | scalar_format_fixed ]
 
+  type summary_floor =
+    [ `Spacer | `Data of scalar_format * string * (string * curve) list ]
   (** A [summary_floor] of tag [`Data] contains all the data necessary in order
       to print a bunch of rows, 1 per summary, all displaying the same summary
       entry. *)
-  type summary_floor =
-    [`Spacer | `Data of scalar_format * string * (string * curve) list]
 
   let sum_curves curves =
     curves |> Pb.transpose_matrix
@@ -833,9 +812,7 @@ module Table4 = struct
             0.)
 
   let div_curves a b = Stdlib.List.map2 ( /. ) a b
-
   let mul_curves a b = Stdlib.List.map2 ( *. ) a b
-
   let mul_curve_scalar a v = List.map (( *. ) v) a
 
   let create_header_rows sample_count summaries =
@@ -848,17 +825,13 @@ module Table4 = struct
           *. float_of_int s.block_count)
     in
     let played_count_curve =
-      Utils.Resample.resample_vector
-        `Next_neighbor
-        played_count_curve
+      Utils.Resample.resample_vector `Next_neighbor played_count_curve
         sample_count
       |> Array.of_list
     in
     let block_level_curve =
-      Utils.Resample.resample_vector
-        `Next_neighbor
-        s.block_specs.level_over_blocks
-        sample_count
+      Utils.Resample.resample_vector `Next_neighbor
+        s.block_specs.level_over_blocks sample_count
       |> Array.of_list
     in
     let header_cells_per_col_idx col_idx =
@@ -875,14 +848,14 @@ module Table4 = struct
       in
       let h1 = Printf.sprintf "%.0f%%" (progress_blocks *. 100.) in
       let h2 = Printf.sprintf "%#d" (int_of_float block_level) in
-      [h0; h1; h2]
+      [ h0; h1; h2 ]
     in
     let col_a =
-      [["Block played count *C"; "Blocks progress *C"; "Block level"]]
+      [ [ "Block played count *C"; "Blocks progress *C"; "Block level" ] ]
       |> Pb.matrix_to_text
     in
     let col_b =
-      (if only_one_summary then [] else [[""; ""; ""]])
+      (if only_one_summary then [] else [ [ ""; ""; "" ] ])
       |> Pb.matrix_to_text |> Pb.align_matrix `Center
     in
     let cols_c =
@@ -916,8 +889,7 @@ module Table4 = struct
      fun curve_of_summary ->
       Stdlib.List.map2
         (fun sname s -> (sname, curve_of_summary s))
-        summary_names
-        summaries
+        summary_names summaries
     in
     let zip_per_block_to_per_sec : (summary -> curve) -> (string * curve) list =
       let sec_per_block =
@@ -961,7 +933,7 @@ module Table4 = struct
       `Data (f, stat_name, curves)
     in
 
-    let span_occu_count : [< Span.Key.t] -> summary_floor =
+    let span_occu_count : [< Span.Key.t ] -> summary_floor =
      fun op ->
       let name = Fmt.str "%s count per block *LA" (Span.Key.to_string op) in
       let op = (op :> Span.Key.t) in
@@ -970,7 +942,7 @@ module Table4 = struct
       in
       `Data (`R3, name, curves)
     in
-    let span_duration : _ -> [< Span.Key.t] -> summary_floor =
+    let span_duration : _ -> [< Span.Key.t ] -> summary_floor =
      fun f op ->
       let name = Fmt.str "%s duration *LA" (Span.Key.to_string op) in
       let op = (op :> Span.Key.t) in
@@ -1233,7 +1205,7 @@ module Table4 = struct
       List.mapi
         (fun row_idx (summary_name, curve) ->
           let a = Pb.text (if row_idx = 0 then floor_name else "") in
-          let b = if only_one_summary then [] else [Pb.text summary_name] in
+          let b = if only_one_summary then [] else [ Pb.text summary_name ] in
           let c =
             List.mapi (box_of_scalar row_idx) (Stdlib.List.combine curve0 curve)
           in
@@ -1244,7 +1216,7 @@ module Table4 = struct
 
   let matrix_of_floor col_count = function
     | `Spacer ->
-        [Stdlib.List.init col_count (Fun.const "")] |> Pb.matrix_to_text
+        [ Stdlib.List.init col_count (Fun.const "") ] |> Pb.matrix_to_text
     | `Data _ as floor -> matrix_of_data_floor floor
 end
 
@@ -1254,7 +1226,7 @@ let unsafe_pp sample_count ppf summary_names (summaries : Summary.t list) =
     let v = Stdlib.List.hd l in
     if List.exists (fun v' -> v' <> v) l then
       Stdlib.failwith
-        "Can't pp together summaries with a different `block_count`" ;
+        "Can't pp together summaries with a different `block_count`";
     v
   in
   let moving_average_half_life_ratio =
@@ -1263,7 +1235,7 @@ let unsafe_pp sample_count ppf summary_names (summaries : Summary.t list) =
     if List.exists (fun v' -> v' <> v) l then
       Stdlib.failwith
         "Can't pp together summaries with a different \
-         `moving_average_half_life_ratio`" ;
+         `moving_average_half_life_ratio`";
     v
   in
   let table0 =
@@ -1274,10 +1246,10 @@ let unsafe_pp sample_count ppf summary_names (summaries : Summary.t list) =
   let table1 =
     let summary_length = List.length summaries in
     let header_rows =
-      ["" :: summary_names] |> Pb.matrix_to_text |> Pb.align_matrix `Center
+      [ "" :: summary_names ] |> Pb.matrix_to_text |> Pb.align_matrix `Center
     in
     let col_count = summary_length + 1 in
-    let separator = [List.init (summary_length + 1) (Fun.const "--")] in
+    let separator = [ List.init (summary_length + 1) (Fun.const "--") ] in
     let separator_row = Pb.matrix_to_text separator in
     let body_rows =
       Table1.rows_of_summaries summaries |> Table1.matrix_of_rows col_count
@@ -1323,13 +1295,7 @@ let unsafe_pp sample_count ppf summary_names (summaries : Summary.t list) =
     header_rows @ body_rows |> Pb.matrix_with_column_spacers
     |> Pb.grid_l ~bars:false |> PrintBox_text.to_string
   in
-  fprintf_result
-    ppf
-    table0
-    table1
-    table2
-    table3
-    table4
+  fprintf_result ppf table0 table1 table2 table3 table4
     (moving_average_half_life_ratio *. float_of_int (block_count + 1))
 
 let pp sample_count ppf (summary_names, summaries) =

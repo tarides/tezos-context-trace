@@ -26,7 +26,6 @@
 open Lwt_syntax
 
 let ( >|= ) = ( let+ )
-
 let ( >>= ) = ( let* )
 
 (** Handling of [tzstats.com] queries during conversion of a raw actions trace
@@ -39,8 +38,8 @@ let ( >>= ) = ( let* )
     It might crash if the project has not been recompiled with lwt_ssl. Try to
     recompile lwt_ssl. *)
 
-(** Use the Stdlib modules and not the Tezos one. *)
 module Hashtbl = Stdlib.Hashtbl
+(** Use the Stdlib modules and not the Tezos one. *)
 
 module Option = Stdlib.Option
 
@@ -58,7 +57,7 @@ let iter_2by2 : ('a -> 'a -> unit) -> 'a array -> unit =
 let filter_2by2 : ('a -> 'a -> bool) -> 'a list -> 'a list =
  fun f l ->
   match l with
-  | [] | [_] -> l
+  | [] | [ _ ] -> l
   | hd :: tl ->
       let rec aux prev l acc =
         match l with
@@ -66,7 +65,7 @@ let filter_2by2 : ('a -> 'a -> bool) -> 'a list -> 'a list =
         | hd :: tl -> aux hd tl acc
         | [] -> List.rev acc
       in
-      aux hd tl [hd]
+      aux hd tl [ hd ]
 
 let request_size = 10000
 
@@ -82,11 +81,11 @@ type block_info = {
   hash : string;
 }
 
-type t = {root : string; tbl : (int, block_info) Hashtbl.t}
+type t = { root : string; tbl : (int, block_info) Hashtbl.t }
 
 (* Using yojson because repr doesn't handle tuples of size >=4 *)
 type page = (int * int * int * int * int * int * int * string) array
-[@@deriving yojson {exn = true}]
+[@@deriving yojson { exn = true }]
 
 (* queries the tzstats API *)
 let fetch page_i : string Lwt.t =
@@ -100,7 +99,7 @@ let fetch page_i : string Lwt.t =
       ((page_i + 1) * request_size)
       (request_size * 2)
   in
-  Logs.info (fun l -> l "Fetching %s" url) ;
+  Logs.info (fun l -> l "Fetching %s" url);
   Lwt.pick
     [
       (Client.get (Uri.of_string url) >|= fun v -> `Done v);
@@ -112,26 +111,20 @@ let fetch page_i : string Lwt.t =
       match resp.Cohttp.Response.status with
       | `OK -> Cohttp_lwt.Body.to_string body
       | _ ->
-          Fmt.failwith
-            "Failed to fetch %s\n%a" url
-            Cohttp.Response.pp_hum
-            resp)
+          Fmt.failwith "Failed to fetch %s\n%a" url Cohttp.Response.pp_hum resp)
 
 (* mutates the filesystem (if necessary) *)
 let fetch t page_i : page Lwt.t =
   let path =
-    Filename.concat
-      t.root
-      (Printf.sprintf
-         "%d-%d.json"
-         (page_i * request_size)
+    Filename.concat t.root
+      (Printf.sprintf "%d-%d.json" (page_i * request_size)
          (((page_i + 1) * request_size) - 1))
   in
   if Sys.file_exists path then (
     let chan = open_in path in
     let len = in_channel_length chan in
     let page = really_input_string chan len in
-    close_in chan ;
+    close_in chan;
     let res =
       match page |> Yojson.Safe.from_string |> page_of_yojson with
       | Ok v -> v
@@ -147,9 +140,8 @@ let fetch t page_i : page Lwt.t =
     in
     let res =
       Array.to_list res
-      |> filter_2by2
-           (fun (h, _, _, _, _, _, _, _) (h', _, _, _, _, _, _, _)
-           -> h <> h')
+      |> filter_2by2 (fun (h, _, _, _, _, _, _, _) (h', _, _, _, _, _, _, _) ->
+             h <> h')
       |> Array.of_list
     in
     let count_exp = request_size in
@@ -160,23 +152,20 @@ let fetch t page_i : page Lwt.t =
       | 0 -> None
       | _ ->
           Some
-            ( Array.get res (count_got - 1)
-            |> fun (h, _, _, _, _, _, _, _) -> h )
+            (Array.get res (count_got - 1) |> fun (h, _, _, _, _, _, _, _) -> h)
     in
     iter_2by2
       (fun (h, _, _, _, _, _, _, _) (h', _, _, _, _, _, _, _) ->
         if h + 1 <> h' then
           Fmt.failwith
-            "Two consecutive blocks have level %d / %d from tzstats.com"
-            h
-            h')
-      res ;
+            "Two consecutive blocks have level %d / %d from tzstats.com" h h')
+      res;
     if count_exp = count_got then (
-      assert (last_height_exp = Option.get last_height_got) ;
-      Logs.info (fun l -> l "Saving %s" path) ;
+      assert (last_height_exp = Option.get last_height_got);
+      Logs.info (fun l -> l "Saving %s" path);
       let chan = open_out path in
-      output_string chan page ;
-      close_out chan) ;
+      output_string chan page;
+      close_out chan);
     Lwt.return res
 
 (* mutates the hashtbl *)
@@ -184,7 +173,7 @@ let fetch t i : unit Lwt.t =
   let page_i = i / request_size in
   fetch t page_i >|= fun page ->
   if Array.length page <= i - (page_i * request_size) then
-    failwith "Did not retrieve enough blocks from tzstats" ;
+    failwith "Did not retrieve enough blocks from tzstats";
   Array.iter
     (fun ( height,
            op_count,
@@ -196,9 +185,7 @@ let fetch t i : unit Lwt.t =
            time,
            solvetime,
            hash ) ->
-      Hashtbl.add
-        t.tbl
-        height
+      Hashtbl.add t.tbl height
         {
           op_count;
           op_count_tx;
@@ -225,19 +212,19 @@ let create cache_dir_path : t =
     else
       let path' = Filename.dirname path in
       if path' = path then
-        failwith "Failed to prepare cache dir for tezos metrics" ;
-      mkdir_p path' ;
+        failwith "Failed to prepare cache dir for tezos metrics";
+      mkdir_p path';
       Unix.mkdir path 0o755
   in
-  mkdir_p cache_dir_path ;
-  {root = cache_dir_path; tbl = Hashtbl.create 1000}
+  mkdir_p cache_dir_path;
+  { root = cache_dir_path; tbl = Hashtbl.create 1000 }
 
 let debug () =
   Lwt_main.run
     (let v = create "/tmp/tzstats-cache" in
      let fetch i =
        fetch v i >|= fun v ->
-       ignore v ;
+       ignore v;
        Fmt.epr "> lvl:%7d\n%!" i
      in
      fetch 1513837 >>= fun () ->

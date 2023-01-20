@@ -6,24 +6,17 @@
  (libraries cmdliner tezos-context-recording tezos-context-replay))
 
 (executable
-  (name replay)
-  (public_name replay)
-  (modules replay)
-  (package tezos-context-replay-tools)
-  (libraries cmdliner
-             tezos-base
-             tezos-context
-             tezos-context-replay
-             )
-  (flags (:standard  -open Tezos_base__TzPervasives))
-)
+ (name replay)
+ (public_name replay)
+ (modules replay)
+ (package tezos-context-replay-tools)
+ (libraries cmdliner tezos-base tezos-context tezos-context-replay)
+ (flags
+  (:standard -open Tezos_base__TzPervasives)))
 
 (executable
-  (name manage_actions)
-  (public_name manage_actions)
-  (modules manage_actions)
-  (package tezos-context-replay-tools)
-  (libraries cmdliner
-
-             tezos-context-recording
-             tezos-context-replay))
+ (name manage_actions)
+ (public_name manage_actions)
+ (modules manage_actions)
+ (package tezos-context-replay-tools)
+ (libraries cmdliner tezos-context-recording tezos-context-replay))

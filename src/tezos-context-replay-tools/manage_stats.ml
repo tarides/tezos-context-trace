@@ -34,10 +34,10 @@ let summarise path =
   Summary.(summarise path |> Fmt.pr "%a\n" (Irmin.Type.pp_json t))
 
 let summary_of_path p =
-  if Filename.extension p <> ".json" then failwith "Input file should be JSON" ;
+  if Filename.extension p <> ".json" then failwith "Input file should be JSON";
   let chan = open_in_bin p in
   let raw = really_input_string chan (in_channel_length chan) in
-  close_in chan ;
+  close_in chan;
   match Irmin.Type.of_json_string Summary.t raw with
   | Error (`Msg msg) ->
       Fmt.invalid_arg "File \"%s\" should be a json summary.\nError: %s" p msg
@@ -58,14 +58,12 @@ let pp paths named_paths cols_opt =
     |> List.split
   in
   if List.length paths = 0 then
-    invalid_arg "manage_stats.exe pp: At least one path should be provided" ;
+    invalid_arg "manage_stats.exe pp: At least one path should be provided";
   pp name_per_path paths cols_opt
 
 let pp_gc name_per_path paths which_gcs =
   let summaries = List.map summary_of_path paths in
-  Fmt.pr
-    "%a\n"
-    Trace_stats_summary_pp_gc.pp_gc
+  Fmt.pr "%a\n" Trace_stats_summary_pp_gc.pp_gc
     (name_per_path, summaries, which_gcs)
 
 let pp_gc paths named_paths which_gcs =
@@ -74,15 +72,13 @@ let pp_gc paths named_paths which_gcs =
     |> List.split
   in
   if List.length paths = 0 then
-    invalid_arg "manage_stats.exe pp: At least one path should be provided" ;
+    invalid_arg "manage_stats.exe pp: At least one path should be provided";
   pp_gc name_per_path paths which_gcs
 
 open Cmdliner
 
 let deprecated_info = (Term.info [@alert "-deprecated"])
-
 let deprecated_exit = (Term.exit [@alert "-deprecated"])
-
 let deprecated_eval_choice = (Term.eval_choice [@alert "-deprecated"])
 
 let term_summarise =
@@ -100,11 +96,8 @@ let arg_indexed_files =
 let arg_named_files =
   let open Arg in
   let a =
-    opt_all
-      (pair string non_dir_file)
-      []
-      (info
-         ["f"; "named-file"]
+    opt_all (pair string non_dir_file) []
+      (info [ "f"; "named-file" ]
          ~doc:
            "A comma-separated pair of short name / path to trace or summary. \
             The short name is used to tag the rows inside the pretty printed \
@@ -113,15 +106,15 @@ let arg_named_files =
   value a
 
 let arg_which_gcs =
-  let mode = [("all", `All); ("only-last", `Only_last)] in
-  let doc = Arg.info ~doc:(Arg.doc_alts_enum mode) ["which-gcs"] in
+  let mode = [ ("all", `All); ("only-last", `Only_last) ] in
+  let doc = Arg.info ~doc:(Arg.doc_alts_enum mode) [ "which-gcs" ] in
   Arg.(value @@ opt (Arg.enum mode) `Only_last doc)
 
 let term_pp =
   let arg_columns =
     let open Arg in
     let doc =
-      Arg.info ~doc:"Number of sample columns to show." ["c"; "columns"]
+      Arg.info ~doc:"Number of sample columns to show." [ "c"; "columns" ]
     in
     let a = opt (some int) None doc in
     value a
@@ -134,10 +127,8 @@ let term_pp_gc =
 let () =
   let man = [] in
   let i =
-    deprecated_info
-      ~man
-      ~doc:"Processing of stats traces and stats trace summaries."
-      "stats"
+    deprecated_info ~man
+      ~doc:"Processing of stats traces and stats trace summaries." "stats"
   in
 
   let man =
@@ -189,6 +180,5 @@ let () =
   in
 
   deprecated_exit
-  @@ deprecated_eval_choice
-       (term_summarise, i)
-       [(term_summarise, j); (term_pp, k); (term_pp_gc, l)]
+  @@ deprecated_eval_choice (term_summarise, i)
+       [ (term_summarise, j); (term_pp, k); (term_pp_gc, l) ]

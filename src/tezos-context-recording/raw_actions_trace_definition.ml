@@ -59,15 +59,10 @@ module V0 = struct
   let version = 0
 
   type header = unit [@@deriving repr]
-
   type key = string list [@@deriving repr]
-
   type hash = string [@@deriving repr]
-
   type commit_hash = hash [@@deriving repr]
-
   type message = string [@@deriving repr]
-
   type varint63 = Optint.Int63.t [@@deriving repr]
 
   let varint63_t =
@@ -77,100 +72,91 @@ module V0 = struct
 
   type tracker = varint63 [@@deriving repr]
 
-  type tracker_range = {first_tracker : tracker; count : int} [@@deriving repr]
+  type tracker_range = { first_tracker : tracker; count : int }
+  [@@deriving repr]
 
   type tree = tracker [@@deriving repr]
-
   type trees_with_contiguous_trackers = tracker_range [@@deriving repr]
-
   type context = tracker [@@deriving repr]
-
   type value = bytes [@@deriving repr]
-
   type md5 = Digestif.MD5.t
 
   let md5_t : md5 Repr.t =
     Repr.map Repr.string Digestif.MD5.of_raw_string Digestif.MD5.to_raw_string
 
+  type output_value = [ `Value of bytes | `Hash of md5 ] [@@deriving repr]
   (** Type of [value] output of lib_context. Can be reused during replay or
       trace inspection to assert correcness or returned value.
 
       The [`Hash] tag is used when the byte sequence is long. *)
-  type output_value = [`Value of bytes | `Hash of md5] [@@deriving repr]
 
   type step = string [@@deriving repr]
 
-  type depth = [`Eq of int | `Ge of int | `Gt of int | `Le of int | `Lt of int]
+  type depth = [ `Eq of int | `Ge of int | `Gt of int | `Le of int | `Lt of int ]
   [@@deriving repr]
 
-  type order = [`Sorted | `Undefined] [@@deriving repr]
-
+  type order = [ `Sorted | `Undefined ] [@@deriving repr]
   type block_level = int32 [@@deriving repr]
-
   type time_protocol = int64 [@@deriving repr]
 
   type merkle_leaf_kind =
     Tezos_context_sigs.Context.Proof_types.merkle_leaf_kind
 
   let merkle_leaf_kind_t =
-    Repr.enum
-      "merkle_leaf_kind"
+    Repr.enum "merkle_leaf_kind"
       [
         ("Hole", Tezos_context_sigs.Context.Proof_types.Hole);
         ("Raw_context", Tezos_context_sigs.Context.Proof_types.Raw_context);
       ]
 
   type chain_id = string [@@deriving repr]
-
   type test_chain_status = Test_chain_status.t
 
   let test_chain_status_t =
     let open Repr in
     variant "test_chain_status" (fun not_running forking running -> function
       | Test_chain_status.Not_running -> not_running
-      | Forking {protocol; expiration} ->
+      | Forking { protocol; expiration } ->
           let protocol = Protocol_hash.to_string protocol in
           let expiration = Time.Protocol.to_seconds expiration in
           forking (protocol, expiration)
-      | Running {chain_id; genesis; protocol; expiration} ->
+      | Running { chain_id; genesis; protocol; expiration } ->
           let chain_id = Chain_id.to_string chain_id in
           let genesis = Block_hash.to_string genesis in
           let protocol = Protocol_hash.to_string protocol in
           let expiration = Time.Protocol.to_seconds expiration in
           running ((chain_id, genesis), (protocol, expiration)))
     |~ case0 "Not_running" Test_chain_status.Not_running
-    |~ case1
-         "Forking"
-         (pair hash_t time_protocol_t)
+    |~ case1 "Forking" (pair hash_t time_protocol_t)
          (fun (protocol, expiration) ->
            let protocol = Protocol_hash.of_string_exn protocol in
            let expiration = Time.Protocol.of_seconds expiration in
-           Test_chain_status.Forking {protocol; expiration})
-    |~ case1
-         "Running"
+           Test_chain_status.Forking { protocol; expiration })
+    |~ case1 "Running"
          (pair (pair chain_id_t hash_t) (pair hash_t time_protocol_t))
          (fun ((chain_id, genesis), (protocol, expiration)) ->
            let chain_id = Chain_id.of_string_exn chain_id in
            let genesis = Block_hash.of_string_exn genesis in
            let protocol = Protocol_hash.of_string_exn protocol in
            let expiration = Time.Protocol.of_seconds expiration in
-           Test_chain_status.Running {chain_id; genesis; protocol; expiration})
+           Test_chain_status.Running { chain_id; genesis; protocol; expiration })
     |> sealv
 
   type system_wide_timestamp = float [@@deriving repr]
 
-  (** System timestamps recorded in order to correlate the parallel calls
-      of the various processes accessing the context. *)
   type timestamp_bounds = {
     before : system_wide_timestamp;
     after : system_wide_timestamp;
   }
   [@@deriving repr]
+  (** System timestamps recorded in order to correlate the parallel calls
+      of the various processes accessing the context. *)
 
   type ('input, 'output) fn = 'input * 'output [@@deriving repr]
 
   module Tree = struct
-    type raw = [`Value of value | `Tree of (step * raw) list] [@@deriving repr]
+    type raw = [ `Value of value | `Tree of (step * raw) list ]
+    [@@deriving repr]
 
     type t =
       (* [_o i_ ___] *)
@@ -183,7 +169,7 @@ module V0 = struct
       | Mem_tree of (tree * key, bool) fn
       | Find of (tree * key, output_value option (* partially recording *)) fn
       | Is_empty of (tree, bool) fn
-      | Kind of (tree, [`Tree | `Value]) fn
+      | Kind of (tree, [ `Tree | `Value ]) fn
       | Hash of (tree, hash) fn
       | Equal of (tree * tree, bool) fn
       | To_value of (tree, output_value option (* partially recording *)) fn
@@ -295,17 +281,14 @@ include Trace_auto_file_format.Make (struct
 
   let get_version_converter = function
     | 0 ->
-        Trace_auto_file_format.create_version_converter
-          ~header_t:V0.header_t
-          ~row_t:V0.row_t
-          ~upgrade_header:Fun.id
-          ~upgrade_row:Fun.id
+        Trace_auto_file_format.create_version_converter ~header_t:V0.header_t
+          ~row_t:V0.row_t ~upgrade_header:Fun.id ~upgrade_row:Fun.id
     | i ->
         let msg = Fmt.str "Unknown Raw_actions_trace version %d" i in
         raise (Misc.Suspicious_trace_file msg)
 end)
 
-type file_type = [`Ro | `Rw | `Misc]
+type file_type = [ `Ro | `Rw | `Misc ]
 
 let take : type a. int -> a Seq.t -> a list =
  fun count_expected seq ->
@@ -323,24 +306,24 @@ let take : type a. int -> a Seq.t -> a list =
 (** Automatic classification of a raw trace file depending on the number and
       kind of [Init] operations in the first 10 rows of the trace. *)
 let type_of_file p =
-  let (_, _, reader) = open_reader p in
+  let _, _, reader = open_reader p in
   let l = take 10 reader in
   let ros = List.filter (function Init (true, _) -> true | _ -> false) l in
   let rws = List.filter (function Init (false, _) -> true | _ -> false) l in
   match (List.length ros, List.length rws) with
-  | (1, 0) -> `Ro
-  | (0, 1) -> `Rw
+  | 1, 0 -> `Ro
+  | 0, 1 -> `Rw
   | _ -> `Misc
 
 let trace_files_of_trace_directory ?filter prefix : (string * int) list =
   let filter =
     match filter with
-    | None -> [`Ro; `Rw; `Misc]
+    | None -> [ `Ro; `Rw; `Misc ]
     | Some v -> (v :> file_type list)
   in
   let parse_filename p =
     match String.split_on_char '.' p with
-    | ["raw_actions_trace"; pid; "trace"] -> int_of_string_opt pid
+    | [ "raw_actions_trace"; pid; "trace" ] -> int_of_string_opt pid
     | _ -> None
   in
   Sys.readdir prefix |> Array.to_list

@@ -38,9 +38,7 @@ module type MAGIC = sig
   type t
 
   val of_string : string -> t
-
   val to_string : t -> string
-
   val pp : Format.formatter -> t -> unit
 end
 
@@ -51,7 +49,6 @@ module type FILE_FORMAT = sig
     val version : int
 
     type header [@@deriving repr]
-
     type row [@@deriving repr]
   end
 
@@ -61,13 +58,13 @@ module type FILE_FORMAT = sig
 
   type ('a, 'b) version_converter
 
+  val get_version_converter :
+    int -> (Latest.header, Latest.row) version_converter
   (** [get_version_converter v] is a converter that can upgrade headers and rows
       from a version [i] to [Latest.version].
 
       It may raise [Invalid_argument] if
  *)
-  val get_version_converter :
-    int -> (Latest.header, Latest.row) version_converter
 end
 
 (** Automatically defined *)
@@ -80,27 +77,23 @@ module type S = sig
   type writer
 
   val create : out_channel -> File_format.Latest.header -> writer
-
   val create_file : string -> File_format.Latest.header -> writer
-
   val append_row : writer -> File_format.Latest.row -> unit
-
   val flush : writer -> unit
-
   val close : writer -> unit
 end
 
 module type Trace_auto_file_format = sig
   type ('a, 'b) version_converter
 
-  (** Create a value that contains everything needed to upgrade on-the-fly a
-      file version to the latest version defined by the file format. *)
   val create_version_converter :
     header_t:'header Repr.ty ->
     row_t:'row Repr.ty ->
     upgrade_header:('header -> 'latest_header) ->
     upgrade_row:('row -> 'latest_row) ->
     ('latest_header, 'latest_row) version_converter
+  (** Create a value that contains everything needed to upgrade on-the-fly a
+      file version to the latest version defined by the file format. *)
 
   module type MAGIC = MAGIC
 
@@ -115,7 +108,7 @@ module type Trace_auto_file_format = sig
     S
       with type File_format.magic := Magic.t
       with type ('a, 'b) File_format.version_converter :=
-            ('a, 'b) version_converter
+        ('a, 'b) version_converter
 
   (** Derive the IO operations from a file format. *)
   module Make (File_format : FILE_FORMAT) :

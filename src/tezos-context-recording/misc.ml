@@ -26,11 +26,8 @@
 (* Using [exception] instead of [error] because all occurences are in direct
    code *)
 exception Recording_io_error of string
-
 exception Suspicious_trace_file of string
-
 exception Stats_trace_without_init
-
 exception Raw_trace_without_init
 
 let prepare_trace_file prefix filename =
@@ -53,10 +50,10 @@ let prepare_trace_file prefix filename =
           raise
             (Recording_io_error "Failed to prepare trace destination directory")
       in
-      mkdir_p path' ;
+      mkdir_p path';
       Unix.mkdir path 0o755
   in
-  mkdir_p prefix ;
+  mkdir_p prefix;
   let path = Filename.concat prefix filename in
   let () =
     if Sys.file_exists path then

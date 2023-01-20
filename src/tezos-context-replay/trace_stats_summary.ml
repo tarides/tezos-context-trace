@@ -48,8 +48,7 @@ type last_row =
   | `Commit of Def.Commit_op.payload
   | `Dump_context of Def.Stats_op.payload ]
 
-type gc_event = [`Start | `End of Def.Gc.t]
-
+type gc_event = [ `Start | `End of Def.Gc.t ]
 type block = initial_row list * last_row * gc_event list
 
 (* Section 1/4 - Type of a summary. *)
@@ -78,12 +77,11 @@ type curve = Utils.curve [@@deriving repr]
     merge is added to the unseen span of the block. *)
 module Span = struct
   module Key = struct
-    (** The unitary operations played. We recorded the length of all of these. *)
     type atom_seen =
-      [`Frequent_op of Def.Frequent_op.tag | `Commit | `Close | `Dump_context]
+      [ `Frequent_op of Def.Frequent_op.tag | `Commit | `Close | `Dump_context ]
     [@@deriving repr]
+    (** The unitary operations played. We recorded the length of all of these. *)
 
-    (** All spans. *)
     type t =
       [ `Frequent_op of Def.Frequent_op.tag
       | `Commit
@@ -93,6 +91,7 @@ module Span = struct
       | `Buildup
       | `Block ]
     [@@deriving repr]
+    (** All spans. *)
 
     let all_tree_ops : atom_seen list =
       [
@@ -146,16 +145,15 @@ module Span = struct
         ]
 
     let all_atoms_seen : atom_seen list =
-      all_frequent_ops @ [`Commit; `Close; `Dump_context]
+      all_frequent_ops @ [ `Commit; `Close; `Dump_context ]
 
-    let all_atoms : t list = (all_atoms_seen :> t list) @ [`Unseen]
+    let all_atoms : t list = (all_atoms_seen :> t list) @ [ `Unseen ]
+    let all : t list = all_atoms @ [ `Buildup; `Block ]
 
-    let all : t list = all_atoms @ [`Buildup; `Block]
-
-    let to_string : [< t] -> string =
+    let to_string : [< t ] -> string =
       let to_lower_repr_string t v =
         match String.split_on_char '"' (Irmin.Type.to_string t v) with
-        | [""; s; ""] -> s |> String.lowercase_ascii
+        | [ ""; s; "" ] -> s |> String.lowercase_ascii
         | _ -> Fmt.failwith "Could not encode span name to string"
       in
       fun v ->
@@ -171,21 +169,21 @@ module Span = struct
         | `Buildup -> "buildup"
         | `Block -> "block"
 
-    let of_string : string -> (t, [`Msg of string]) result =
+    let of_string : string -> (t, [ `Msg of string ]) result =
      fun s ->
       match String.split_on_char '.' s with
-      | ["commit"] -> Ok `Commit
-      | ["close"] -> Ok `Close
-      | ["dump_context"] -> Ok `Dump_context
-      | ["unseen"] -> Ok `Unseen
-      | ["buildup"] -> Ok `Buildup
-      | ["block"] -> Ok `Block
-      | ["tree"; s] -> (
+      | [ "commit" ] -> Ok `Commit
+      | [ "close" ] -> Ok `Close
+      | [ "dump_context" ] -> Ok `Dump_context
+      | [ "unseen" ] -> Ok `Unseen
+      | [ "buildup" ] -> Ok `Buildup
+      | [ "block" ] -> Ok `Block
+      | [ "tree"; s ] -> (
           let s = "\"" ^ String.capitalize_ascii s ^ "\"" in
           match Irmin.Type.of_string Def.Frequent_op.tree_t s with
           | Ok v -> Ok (`Frequent_op (`Tree v))
           | Error _ as e -> e)
-      | [s] -> (
+      | [ s ] -> (
           let s = "\"" ^ String.capitalize_ascii s ^ "\"" in
           match Irmin.Type.of_string Def.Frequent_op.tag_t s with
           | Ok v -> Ok (`Frequent_op v)
@@ -194,6 +192,14 @@ module Span = struct
   end
 
   module Val = struct
+    type t = {
+      count : Vs.t;
+      cumu_count : Vs.t;
+      duration : Vs.t;
+      duration_log_scale : Vs.t;
+      cumu_duration : Vs.t;
+    }
+    [@@deriving repr]
     (** Statistics for a given span over the full stat trace.
 
         The [count] variable is the number of occurences of a span per block and
@@ -206,14 +212,6 @@ module Span = struct
         The [count] for [commit] and [unseen] is trivialy equal to 1. The same
         is almost true for [checkout] too (as the genesis commit has no
         checkout). *)
-    type t = {
-      count : Vs.t;
-      cumu_count : Vs.t;
-      duration : Vs.t;
-      duration_log_scale : Vs.t;
-      cumu_duration : Vs.t;
-    }
-    [@@deriving repr]
   end
 
   module Map = struct
@@ -245,7 +243,7 @@ module Span = struct
     Irmin.Type.(map (Json.assoc Val.t) decode encode)
 end
 
-type once_per_commit_stat = {value : Vs.t; diff_per_block : Vs.t}
+type once_per_commit_stat = { value : Vs.t; diff_per_block : Vs.t }
 [@@deriving repr]
 
 (** Stats gathered on certain directory sizes within the imin store *)
@@ -255,7 +253,7 @@ module Watched_node = struct
 
     let to_string v =
       match String.split_on_char '"' (Irmin.Type.to_string t v) with
-      | [""; s; ""] -> s |> String.lowercase_ascii
+      | [ ""; s; "" ] -> s |> String.lowercase_ascii
       | _ -> Fmt.failwith "Could not encode node name to json"
 
     let of_string s =
@@ -296,6 +294,14 @@ module Watched_node = struct
     Irmin.Type.(map (Json.assoc Val.t) decode encode)
 end
 
+type bag_stat = {
+  value_before_commit : Vs.t;
+  value_after_commit : Vs.t;
+  diff_per_block : Vs.t;
+  diff_per_buildup : Vs.t;
+  diff_per_commit : Vs.t;
+}
+[@@deriving repr]
 (** Summary of an entry contained in [Def.bag_of_stat].
 
     Properties of such a variables:
@@ -312,14 +318,6 @@ end
 
     The [value_after_commit] is initially fed with the value in the header (i.e.
     the value recorded just before the start of the play). *)
-type bag_stat = {
-  value_before_commit : Vs.t;
-  value_after_commit : Vs.t;
-  diff_per_block : Vs.t;
-  diff_per_buildup : Vs.t;
-  diff_per_commit : Vs.t;
-}
-[@@deriving repr]
 
 type pack = {
   finds_total : bag_stat;
@@ -392,7 +390,7 @@ type disk = {
 }
 [@@deriving repr]
 
-type store = {watched_nodes : Watched_node.map} [@@deriving repr]
+type store = { watched_nodes : Watched_node.map } [@@deriving repr]
 
 type rusage = {
   utime : bag_stat;
@@ -431,9 +429,9 @@ type main_activity = {
 }
 [@@deriving repr]
 
-type gc = {gc_stats : Def.Gc.t; main_activity : main_activity} [@@deriving repr]
+type gc = { gc_stats : Def.Gc.t; main_activity : main_activity }
+[@@deriving repr]
 
-(** The type of a summary *)
 type t = {
   summary_timeofday : float;
   summary_hostname : string;
@@ -463,14 +461,13 @@ type t = {
   gcs : gc list; (* gcs : Def.Gc.t list; *)
 }
 [@@deriving repr]
+(** The type of a summary *)
 
 (* Section 2/4 - Converters from stats_trace to element of summary. *)
 let create_vs block_count =
-  Vs.create_acc
-    ~distribution_bin_count:Conf.histo_bin_count
+  Vs.create_acc ~distribution_bin_count:Conf.histo_bin_count
     ~out_sample_count:Conf.curves_sample_count
-    ~in_period_count:(block_count + 1)
-    ~evolution_resampling_mode:`Next_neighbor
+    ~in_period_count:(block_count + 1) ~evolution_resampling_mode:`Next_neighbor
 
 let create_vs_exact block_count header_samples =
   let vs = create_vs block_count ~evolution_smoothing:`None ~scale:`Linear in
@@ -521,10 +518,10 @@ module Span_folder = struct
     let acc0 =
       let acc0_per_span =
         let count = create_vs_smooth block_count [] in
-        let cumu_count = create_vs_exact block_count [0.] in
+        let cumu_count = create_vs_exact block_count [ 0. ] in
         let duration = create_vs_smooth block_count [] in
         let duration_log_scale = create_vs_smooth_log block_count [] in
-        let cumu_duration = create_vs_exact block_count [0.] in
+        let cumu_duration = create_vs_exact block_count [ 0. ] in
         {
           sum_count = 0;
           sum_duration = 0.;
@@ -555,7 +552,7 @@ module Span_folder = struct
         let l = d :: Span.Map.find span m in
         Span.Map.add span l m
       in
-      {acc with seen_atoms_durations_in_block}
+      { acc with seen_atoms_durations_in_block }
     in
 
     let on_durations (span : Span.Key.t) (new_durations : float list) acc =
@@ -565,13 +562,15 @@ module Span_folder = struct
       let sum_duration =
         acc'.sum_duration +. List.fold_left ( +. ) 0. new_durations
       in
-      let count = Vs.accumulate acc'.count [float_of_int new_count] in
-      let cumu_count = Vs.accumulate acc'.cumu_count [float_of_int sum_count] in
+      let count = Vs.accumulate acc'.count [ float_of_int new_count ] in
+      let cumu_count =
+        Vs.accumulate acc'.cumu_count [ float_of_int sum_count ]
+      in
       let duration = Vs.accumulate acc'.duration new_durations in
       let duration_log_scale =
         Vs.accumulate acc'.duration_log_scale new_durations
       in
-      let cumu_duration = Vs.accumulate acc'.cumu_duration [sum_duration] in
+      let cumu_duration = Vs.accumulate acc'.cumu_duration [ sum_duration ] in
       let acc' =
         {
           sum_count;
@@ -583,7 +582,7 @@ module Span_folder = struct
           cumu_duration;
         }
       in
-      {acc with per_span = Span.Map.add span acc' acc.per_span}
+      { acc with per_span = Span.Map.add span acc' acc.per_span }
     in
 
     let on_block_end timestamp_after acc =
@@ -604,11 +603,10 @@ module Span_folder = struct
       in
       let acc =
         acc
-        |> on_durations
-             `Unseen
-             [total_duration -. sum_several Span.Key.all_atoms_seen]
-        |> on_durations `Buildup [total_duration -. sum_one `Commit]
-        |> on_durations `Block [total_duration]
+        |> on_durations `Unseen
+             [ total_duration -. sum_several Span.Key.all_atoms_seen ]
+        |> on_durations `Buildup [ total_duration -. sum_one `Commit ]
+        |> on_durations `Block [ total_duration ]
       in
       {
         acc with
@@ -627,8 +625,7 @@ module Span_folder = struct
             | `Frequent_op (tag, pl) ->
                 let tag : Span.Key.atom_seen = `Frequent_op tag in
                 on_atom_seen_duration32 acc tag pl)
-          acc
-          rows
+          acc rows
       in
       match last_row with
       | `Commit pl ->
@@ -642,7 +639,7 @@ module Span_folder = struct
           |> on_block_end pl.after.timestamp_wall
     in
 
-    let finalise {per_span; _} =
+    let finalise { per_span; _ } =
       Span.Map.map
         (fun acc ->
           {
@@ -684,7 +681,7 @@ module Bag_stat_folder = struct
       (* Consider the header to virtually follow a commit. That way the
          [value_after_commit] stat will contain a point before and after the
          replay. *)
-      f [value_just_before]
+      f [ value_just_before ]
     in
     let diff_per_block = create_vs_smooth block_count [] in
     let diff_per_buildup = create_vs_smooth block_count [] in
@@ -703,8 +700,8 @@ module Bag_stat_folder = struct
   let accumulate acc ((_, last_row, _) : block) =
     let before, after =
       match (last_row : last_row) with
-      | `Commit {before; after; _} -> (before, after)
-      | `Close {before; after; _} | `Dump_context {before; after; _} ->
+      | `Commit { before; after; _ } -> (before, after)
+      | `Close { before; after; _ } | `Dump_context { before; after; _ } ->
           (before, after)
     in
     let va = acc.value_of_bag before in
@@ -717,11 +714,13 @@ module Bag_stat_folder = struct
     let diff_block = vb -. acc.prev_value in
     let diff_buildup = va -. acc.prev_value in
     let diff_commit = vb -. va in
-    let value_before_commit = Vs.accumulate acc.value_before_commit [va] in
-    let value_after_commit = Vs.accumulate acc.value_after_commit [vb] in
-    let diff_per_block = Vs.accumulate acc.diff_per_block [diff_block] in
-    let diff_per_buildup = Vs.accumulate acc.diff_per_buildup [diff_buildup] in
-    let diff_per_commit = Vs.accumulate acc.diff_per_commit [diff_commit] in
+    let value_before_commit = Vs.accumulate acc.value_before_commit [ va ] in
+    let value_after_commit = Vs.accumulate acc.value_after_commit [ vb ] in
+    let diff_per_block = Vs.accumulate acc.diff_per_block [ diff_block ] in
+    let diff_per_buildup =
+      Vs.accumulate acc.diff_per_buildup [ diff_buildup ]
+    in
+    let diff_per_commit = Vs.accumulate acc.diff_per_commit [ diff_commit ] in
     {
       acc with
       value_before_commit;
@@ -744,12 +743,8 @@ module Bag_stat_folder = struct
   let create ?should_cumulate_value ?is_linearly_increasing initial_bag
       block_count value_of_bag =
     let acc0 =
-      create_acc
-        ?should_cumulate_value
-        ?is_linearly_increasing
-        initial_bag
-        block_count
-        value_of_bag
+      create_acc ?should_cumulate_value ?is_linearly_increasing initial_bag
+        block_count value_of_bag
     in
     Trace_common.Parallel_folders.folder acc0 accumulate finalise
 end
@@ -773,8 +768,8 @@ module Once_per_commit_folder = struct
     in
     let value =
       if is_linearly_increasing then
-        create_vs_exact block_count [value_in_header]
-      else create_vs_smooth block_count [value_in_header]
+        create_vs_exact block_count [ value_in_header ]
+      else create_vs_smooth block_count [ value_in_header ]
     in
     let diff_per_block = create_vs_smooth block_count [] in
     {
@@ -793,9 +788,9 @@ module Once_per_commit_folder = struct
     in
     let v = if acc.should_cumulate_value then acc.prev_value +. v else v in
     let diff_block = v -. acc.prev_value in
-    let value = Vs.accumulate acc.value [v] in
-    let diff_per_block = Vs.accumulate acc.diff_per_block [diff_block] in
-    {acc with value; diff_per_block; prev_value = v}
+    let value = Vs.accumulate acc.value [ v ] in
+    let diff_per_block = Vs.accumulate acc.diff_per_block [ diff_block ] in
+    { acc with value; diff_per_block; prev_value = v }
 
   let finalise acc : once_per_commit_stat =
     {
@@ -806,12 +801,8 @@ module Once_per_commit_folder = struct
   let create ?should_cumulate_value ?is_linearly_increasing block_count
       ?value_of_header value_of_commit =
     let acc0 =
-      create_acc
-        ?should_cumulate_value
-        ?is_linearly_increasing
-        block_count
-        ?value_of_header
-        value_of_commit
+      create_acc ?should_cumulate_value ?is_linearly_increasing block_count
+        ?value_of_header value_of_commit
     in
     Trace_common.Parallel_folders.folder acc0 accumulate finalise
 end
@@ -833,8 +824,7 @@ let watched_nodes_folder _header block_count =
   let finalise acc =
     Stdlib.List.map2
       (fun tag acc_elt -> (tag, Once_per_commit_folder.finalise acc_elt))
-      Def.watched_nodes
-      acc
+      Def.watched_nodes acc
     |> List.to_seq |> Watched_node.Map.of_seq
   in
   Trace_common.Parallel_folders.folder acc0 accumulate finalise
@@ -886,8 +876,8 @@ let merge_durations_folder =
   let accumulate l ((_, last_row, _) : block) =
     let before, after =
       match (last_row : last_row) with
-      | `Commit {before; after; _} -> (before, after)
-      | `Close {before; after; _} | `Dump_context {before; after; _} ->
+      | `Commit { before; after; _ } -> (before, after)
+      | `Close { before; after; _ } | `Dump_context { before; after; _ } ->
           (before, after)
     in
     let l = List.rev_append before.index.new_merge_durations l in
@@ -915,10 +905,10 @@ let level_over_blocks_folder block_level_before block_count =
       | `Close _ ->
           initial_rows
           |> List.find_map (function
-                 | `Frequent_op _ -> None
-                 | `Commit Def.Commit_op.{specs = Some {level; _}; _} ->
-                     Some (float_of_int level)
-                 | `Commit Def.Commit_op.{specs = None; _} -> None)
+               | `Frequent_op _ -> None
+               | `Commit Def.Commit_op.{ specs = Some { level; _ }; _ } ->
+                   Some (float_of_int level)
+               | `Commit Def.Commit_op.{ specs = None; _ } -> None)
           |> Option.value ~default:Float.nan
     in
     Utils.Resample.accumulate acc level
@@ -929,9 +919,7 @@ let level_over_blocks_folder block_level_before block_count =
 let cpu_usage_folder initial_bag block_count =
   let acc0 =
     let vs = create_vs_smooth block_count [] in
-    ( initial_bag.Def.timestamp_wall,
-      initial_bag.Def.timestamp_cpu,
-      vs )
+    (initial_bag.Def.timestamp_wall, initial_bag.Def.timestamp_cpu, vs)
   in
   let accumulate (prev_wall, prev_cpu, vs) ((_, last_row, _) : block) =
     let after =
@@ -943,7 +931,7 @@ let cpu_usage_folder initial_bag block_count =
     let span_cpu = after.timestamp_cpu -. prev_cpu in
     ( after.timestamp_wall,
       after.timestamp_cpu,
-      Vs.accumulate vs [span_cpu /. span_wall] )
+      Vs.accumulate vs [ span_cpu /. span_wall ] )
   in
   let finalise (_, _, vs) = Vs.finalise vs in
   Trace_common.Parallel_folders.folder acc0 accumulate finalise
@@ -957,10 +945,9 @@ let misc_stats_folder header =
       List.fold_left
         (fun count _ ->
           if (count + 1) mod 500_000 = 0 then
-            Fmt.epr "Seeing op idx=%#d ops\n%!" (count + 1) ;
+            Fmt.epr "Seeing op idx=%#d ops\n%!" (count + 1);
           count + 1)
-        count
-        rows
+        count rows
     in
     let after =
       match (last_row : last_row) with
@@ -978,12 +965,8 @@ let misc_stats_folder header =
 
 let bs_folder_of_bag_getter initial_bag block_count ?should_cumulate_value
     ?is_linearly_increasing value_of_bag =
-  Bag_stat_folder.create
-    ?should_cumulate_value
-    ?is_linearly_increasing
-    initial_bag
-    block_count
-    value_of_bag
+  Bag_stat_folder.create ?should_cumulate_value ?is_linearly_increasing
+    initial_bag block_count value_of_bag
 
 let pack_folder header block_count =
   let construct finds_total finds_from_staging finds_from_lru
@@ -1036,8 +1019,7 @@ let pack_folder header block_count =
     |+ x (fun bag -> ofi bag.Def.pack.inode_encode_bin)
     |> seal
   in
-  Trace_common.Parallel_folders.folder
-    acc0
+  Trace_common.Parallel_folders.folder acc0
     Trace_common.Parallel_folders.accumulate
     Trace_common.Parallel_folders.finalise
 
@@ -1079,8 +1061,7 @@ let tree_folder header block_count =
     |+ x (fun bag -> ofi bag.Def.tree.node_val_list)
     |> seal
   in
-  Trace_common.Parallel_folders.folder
-    acc0
+  Trace_common.Parallel_folders.folder acc0
     Trace_common.Parallel_folders.accumulate
     Trace_common.Parallel_folders.finalise
 
@@ -1124,8 +1105,7 @@ let index_folder initial_bag block_count =
            Int64.to_float (Int64.mul merge_count data_size))
     |+ merge_durations_folder |> seal
   in
-  Trace_common.Parallel_folders.folder
-    acc0
+  Trace_common.Parallel_folders.folder acc0
     Trace_common.Parallel_folders.accumulate
     Trace_common.Parallel_folders.finalise
 
@@ -1160,14 +1140,13 @@ let ocaml_gc_folder header block_count =
     |+ x (fun bag -> ofi bag.Def.ocaml_gc.top_heap_words *. ws)
     |> seal
   in
-  Trace_common.Parallel_folders.folder
-    acc0
+  Trace_common.Parallel_folders.folder acc0
     Trace_common.Parallel_folders.accumulate
     Trace_common.Parallel_folders.finalise
 
 let disk_folder header block_count =
   let construct index_data index_log index_log_async store_dict store_pack =
-    {index_data; index_log; index_log_async; store_dict; store_pack}
+    { index_data; index_log; index_log_async; store_dict; store_pack }
   in
   let acc0 =
     let open Trace_common.Parallel_folders in
@@ -1184,14 +1163,13 @@ let disk_folder header block_count =
            ofi64 bag.Def.disk.store_pack)
     |> seal
   in
-  Trace_common.Parallel_folders.folder
-    acc0
+  Trace_common.Parallel_folders.folder acc0
     Trace_common.Parallel_folders.accumulate
     Trace_common.Parallel_folders.finalise
 
 let rusage_folder initial_bag block_count =
   let construct utime stime maxrss minflt majflt inblock oublock nvcsw nivcsw =
-    {utime; stime; maxrss; minflt; majflt; inblock; oublock; nvcsw; nivcsw}
+    { utime; stime; maxrss; minflt; majflt; inblock; oublock; nvcsw; nivcsw }
   in
   let acc0 =
     let open Trace_common.Parallel_folders in
@@ -1209,8 +1187,7 @@ let rusage_folder initial_bag block_count =
     |+ x (fun bag -> ofi64 bag.Def.rusage.nivcsw)
     |> seal
   in
-  Trace_common.Parallel_folders.folder
-    acc0
+  Trace_common.Parallel_folders.folder acc0
     Trace_common.Parallel_folders.accumulate
     Trace_common.Parallel_folders.finalise
 
@@ -1233,13 +1210,10 @@ let block_specs_folder block_level_before block_count =
   let acc0 =
     let open Trace_common.Parallel_folders in
     let f of_specs =
-      Once_per_commit_folder.create
-        ~should_cumulate_value:true
-        block_count
-        ~value_of_header:0.
-        (fun pl_opt ->
+      Once_per_commit_folder.create ~should_cumulate_value:true block_count
+        ~value_of_header:0. (fun pl_opt ->
           match pl_opt with
-          | Some Def.Commit_op.{specs = Some specs; _} ->
+          | Some Def.Commit_op.{ specs = Some specs; _ } ->
               float_of_int (of_specs specs)
           | _ -> Float.nan)
     in
@@ -1256,27 +1230,25 @@ let block_specs_folder block_level_before block_count =
     |+ f (fun specs -> specs.ev_count)
     |> seal
   in
-  Trace_common.Parallel_folders.folder
-    acc0
+  Trace_common.Parallel_folders.folder acc0
     Trace_common.Parallel_folders.accumulate
     Trace_common.Parallel_folders.finalise
 
 let store_folder header block_count =
-  let construct watched_nodes = {watched_nodes} in
+  let construct watched_nodes = { watched_nodes } in
   let acc0 =
     let open Trace_common.Parallel_folders in
     open_ construct |+ watched_nodes_folder header block_count |> seal
   in
-  Trace_common.Parallel_folders.folder
-    acc0
+  Trace_common.Parallel_folders.folder acc0
     Trace_common.Parallel_folders.accumulate
     Trace_common.Parallel_folders.finalise
 
 module Gcs_folder = struct
-  type main_acc = {initial_bag : Def.bag_of_stats; rev_blocks : block list}
+  type main_acc = { initial_bag : Def.bag_of_stats; rev_blocks : block list }
 
   type acc = {
-    state : [`Looking_for_start | `Looking_for_end of main_acc];
+    state : [ `Looking_for_start | `Looking_for_end of main_acc ];
     rev_gcs : gc list;
   }
 
@@ -1284,16 +1256,16 @@ module Gcs_folder = struct
     let blocks = List.rev main_acc.rev_blocks in
     let bag = main_acc.initial_bag in
     let block_count = List.length blocks in
-    assert (block_count > 0) ;
+    assert (block_count > 0);
     let block_level_before =
       match blocks with
       | [] -> assert false
-      | (_, `Commit {specs = Some specs; _}, _) :: _ ->
+      | (_, `Commit { specs = Some specs; _ }, _) :: _ ->
           specs.level - 1 |> float_of_int
       | _ -> Float.nan
     in
     let construct span rusage index block_specs cpu_usage =
-      {span; rusage; index; block_specs; block_count; cpu_usage}
+      { span; rusage; index; block_specs; block_count; cpu_usage }
     in
     let pf0 =
       let open Trace_common.Parallel_folders in
@@ -1302,7 +1274,7 @@ module Gcs_folder = struct
       |+ rusage_folder bag block_count
       |+ index_folder bag block_count
       |+ block_specs_folder block_level_before block_count
-      |+ cpu_usage_folder bag  block_count
+      |+ cpu_usage_folder bag block_count
       |> seal
     in
     List.fold_left Trace_common.Parallel_folders.accumulate pf0 blocks
@@ -1317,12 +1289,12 @@ module Gcs_folder = struct
           | `Close pl -> pl.after
           | `Dump_context _ -> assert false
         in
-        let main_acc = {initial_bag; rev_blocks = []} in
-        {acc with state = `Looking_for_end main_acc}
+        let main_acc = { initial_bag; rev_blocks = [] } in
+        { acc with state = `Looking_for_end main_acc }
     | `Looking_for_end main_acc, `End gc_stats ->
         let main_activity = compute_main_activity main_acc in
-        let s = {gc_stats; main_activity} in
-        {rev_gcs = s :: acc.rev_gcs; state = `Looking_for_start}
+        let s = { gc_stats; main_activity } in
+        { rev_gcs = s :: acc.rev_gcs; state = `Looking_for_start }
     | _ -> assert false
 
   let accumulate acc ((_, _, gc_events) as block : block) =
@@ -1332,16 +1304,16 @@ module Gcs_folder = struct
       | `Looking_for_end main_acc ->
           let state =
             `Looking_for_end
-              {main_acc with rev_blocks = block :: main_acc.rev_blocks}
+              { main_acc with rev_blocks = block :: main_acc.rev_blocks }
           in
-          {acc with state}
+          { acc with state }
     in
     List.fold_left (on_gc_event block) acc gc_events
 
   let finalise acc = List.rev acc.rev_gcs
 
   let create _header _block_count =
-    let acc0 = {state = `Looking_for_start; rev_gcs = []} in
+    let acc0 = { state = `Looking_for_start; rev_gcs = [] } in
     Trace_common.Parallel_folders.folder acc0 accumulate finalise
 end
 
@@ -1381,8 +1353,8 @@ let summarise' header block_count (block_seq : block Seq.t) =
   let block_level_before =
     match header.Def.config.setup with
     | `Play _ -> Float.nan
-    | `Replay {initial_block_level = Some v; _} -> float_of_int v
-    | `Replay {initial_block_level = None; _} -> 0.
+    | `Replay { initial_block_level = Some v; _ } -> float_of_int v
+    | `Replay { initial_block_level = None; _ } -> 0.
   in
   let construct (elapsed_wall, elapsed_cpu, op_count) elapsed_wall_over_blocks
       elapsed_cpu_over_blocks span cpu_usage_variable pack tree index ocaml_gc
@@ -1459,7 +1431,7 @@ let block_seq_when_node_run ~ends_with_close ~block_count row_seq : block Seq.t
             | `Dump_context _ -> assert false
             | `Close _ -> assert false
             | `Commit _ as op ->
-                incr commit_count ;
+                incr commit_count;
                 Seq.Cons
                   ( (List.rev l, op, gc_events),
                     fun () -> aux [] ~gc_events:[] rest )
@@ -1490,7 +1462,7 @@ let block_seq_when_snapshot_export row_seq : block Seq.t =
     The number of blocks to consider may be provided in order to truncate the
     summary. *)
 let summarise ?info trace_stats_path =
-  ignore info ;
+  ignore info;
   (* let info = Some (1, false) in *)
   let is_snapshot_export, block_count, ends_with_close =
     match info with
@@ -1514,7 +1486,7 @@ let summarise ?info trace_stats_path =
   in
   if is_snapshot_export then ()
   else if block_count <= 0 then
-    invalid_arg "Can't summarise an empty stats trace" ;
+    invalid_arg "Can't summarise an empty stats trace";
   let _, header, row_seq = Def.open_reader trace_stats_path in
 
   let block_seq =
@@ -1528,7 +1500,7 @@ let summarise ?info trace_stats_path =
 let save_to_json v path =
   let j = Fmt.str "%a\n" (Irmin.Type.pp_json t) v in
   let chan = open_out path in
-  output_string chan j ;
-  Logs.info (fun l -> l "Summary saved to %s" path) ;
-  close_out chan ;
+  output_string chan j;
+  Logs.info (fun l -> l "Summary saved to %s" path);
+  close_out chan;
   Unix.chmod path 0o444
