@@ -462,17 +462,6 @@ module Make
     in
     Impl.exists x y >|= record_and_return_output
 
-  let dump_context x y ~fd ~on_disk ~progress_display_mode =
-    let x = Index_abstract.unwrap x in
-    let* record_and_return_output =
-      iter_recorders_lwt
-        (fun (module R) ->
-          R.dump_context x y ~fd ~on_disk ~progress_display_mode)
-        Fun.id
-    in
-    Impl.dump_context x y ~fd ~on_disk ~progress_display_mode
-    >>= record_and_return_output
-
   (* [__ io ___] - From context to context *)
 
   let add x y z =
