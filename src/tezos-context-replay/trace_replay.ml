@@ -618,7 +618,11 @@ struct
     let uri_scheme = "context-replay"
     let configure _ = Lwt.return (Ok ())
 
-    let handle (type a) () m ?section (_v : unit -> a) =
+    let should_handle ?section _sink _ =
+      ignore section;
+      false
+
+    let handle (type a) () m ?section _v =
       ignore section;
       let module M = (val m : Internal_event.EVENT_DEFINITION with type t = a)
       in
