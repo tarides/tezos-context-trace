@@ -29,10 +29,6 @@
        ocaml-ppx-deriving-yojson
        ocaml-printbox
        ocaml-bentov))
-     (native-inputs
-      (list
-       ;; Ansible for deploying benchmark servers
-       ansible))
      (synopsis #f)
      (description #f)
      (license license:isc))))

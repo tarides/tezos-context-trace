@@ -1,9 +1,8 @@
-# Irmin/Tezos Benchmarking
+# Tezos Context Replay
 
-This repository contains code, infrastructure descriptoin and instructions on how to run Irmin/Tezos Context benchmarks.
+`tezos_context` is a part of the Tezos Octez implementation that uses Irmin. The Irmin team has created a shim around `tezos_context` that records all `tezos_context` API calls and records them in a trace. This trace (after some pre-processing) is used to replay `tezos_context` API calls with different versions of Irmin in order to benchmark performance of changes to Irmin.
 
-## Context
+This repository contains:
 
-`tezos_context` is a part of the Tezos Octez implementation that uses Irmin. The Irmin team has created a shim around `tezos_context` that records all lib_context API calls and records them in a trace. This trace (after some pre-processing) is used to replay `tezos_context` API calls with different versions of Irmin in order to benchmark performance of changes to Irmin.
-
-These benchmarks are central to the contractual obligations between Tarides and Tezos and usually need to be produced as part of a milestone.
+- The `tezos_context` shim that records a trace.
+- Tools for post-processing and replaying traces.
