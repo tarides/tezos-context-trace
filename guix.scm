@@ -15,7 +15,7 @@
    (package
      (name "ocaml-tezos-context-replay")
      (version "0.0.0")
-     (home-page #f)
+     (home-page "https://github.com/adatario/tezos-context-replay")
      (source (git-checkout (url (dirname (current-filename)))))
      (build-system dune-build-system)
      (propagated-inputs
