@@ -748,5 +748,6 @@ module Make
 
   let flush x = Impl.flush (Context_traced.unwrap x) >|= Context_traced.wrap
   let is_gc_allowed x = Impl.is_gc_allowed (Index_abstract.unwrap x)
+  let split index = Impl.split (Index_abstract.unwrap index)
   let merkle_tree_v2 x y z = Impl.merkle_tree_v2 (Context_traced.unwrap x) y z
 end
