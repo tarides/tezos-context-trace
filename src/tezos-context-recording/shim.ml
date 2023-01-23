@@ -742,6 +742,10 @@ module Make
     Context_traced.wrap z
 
   let gc x y = Impl.gc (Index_abstract.unwrap x) y
+
+  let wait_gc_completion index =
+    Impl.wait_gc_completion (Index_abstract.unwrap index)
+
   let flush x = Impl.flush (Context_traced.unwrap x) >|= Context_traced.wrap
   let is_gc_allowed x = Impl.is_gc_allowed (Index_abstract.unwrap x)
   let merkle_tree_v2 x y z = Impl.merkle_tree_v2 (Context_traced.unwrap x) y z
