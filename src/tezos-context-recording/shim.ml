@@ -157,7 +157,6 @@ module Make
   type kinded_key = Impl.kinded_key
   type error += Cannot_create_file = Impl.Cannot_create_file
   type error += Cannot_open_file = Impl.Cannot_open_file
-  type error += Cannot_retrieve_commit_info = Impl.Cannot_retrieve_commit_info
   type error += Cannot_find_protocol = Impl.Cannot_find_protocol
   type error += Suspicious_file = Impl.Suspicious_file
 
@@ -463,13 +462,6 @@ module Make
     in
     Impl.exists x y >|= record_and_return_output
 
-  let retrieve_commit_info x y =
-    let x = Index_abstract.unwrap x in
-    let record_and_return_output =
-      iter_recorders (fun (module R) -> R.retrieve_commit_info x y) Fun.id
-    in
-    Impl.retrieve_commit_info x y >|= record_and_return_output
-
   let dump_context x y ~fd ~on_disk ~progress_display_mode =
     let x = Index_abstract.unwrap x in
     let* record_and_return_output =
@@ -679,16 +671,6 @@ module Make
   let length x y =
     record_unhandled_lwt Recorder.Length
     @@ Impl.length (Context_traced.unwrap x) y
-
-  let check_protocol_commit_consistency ~expected_context_hash
-      ~given_protocol_hash ~author ~message ~timestamp ~test_chain_status
-      ~predecessor_block_metadata_hash ~predecessor_ops_metadata_hash
-      ~data_merkle_root ~parents_contexts =
-    record_unhandled_lwt Recorder.Check_protocol_commit_consistency
-    @@ Impl.check_protocol_commit_consistency ~expected_context_hash
-         ~given_protocol_hash ~author ~message ~timestamp ~test_chain_status
-         ~predecessor_block_metadata_hash ~predecessor_ops_metadata_hash
-         ~data_merkle_root ~parents_contexts
 
   let produce_tree_proof index kinded_key f =
     record_unhandled_direct Recorder.Produce_tree_proof (Fun.const ());
