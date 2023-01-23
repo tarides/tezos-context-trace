@@ -341,7 +341,7 @@ struct
       Def.Patch_context_exit (x, res) |> push
 
   let restore_context _ ~expected_context_hash:_ ~nb_context_elements:_ ~fd:_
-      ~legacy:_ ~in_memory:_ ~progress_display_mode:_ =
+      ~in_memory:_ ~progress_display_mode:_ =
     Lwt.return @@ fun _res ->
     Def.Unhandled Recorder.Restore_context |> push;
     Lwt.return_unit

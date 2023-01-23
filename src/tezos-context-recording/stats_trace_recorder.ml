@@ -914,7 +914,7 @@ struct
     ()
 
   let restore_context _ ~expected_context_hash:_ ~nb_context_elements:_ ~fd:_
-      ~legacy:_ ~in_memory:_ ~progress_display_mode:_ =
+      ~in_memory:_ ~progress_display_mode:_ =
     direct_op_begin ();
     Lwt.return @@ fun _res ->
     direct_op_end `Restore_context;

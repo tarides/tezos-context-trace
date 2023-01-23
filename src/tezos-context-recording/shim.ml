@@ -608,17 +608,17 @@ module Make
     in
     Impl.clear_test_chain x y >|= record_and_return_output
 
-  let restore_context x ~expected_context_hash ~nb_context_elements ~fd ~legacy
+  let restore_context x ~expected_context_hash ~nb_context_elements ~fd
       ~in_memory ~progress_display_mode =
     let x = Index_abstract.unwrap x in
     let* record_and_return_output =
       iter_recorders_lwt
         (fun (module R) ->
           R.restore_context ~expected_context_hash ~nb_context_elements ~fd
-            ~legacy ~in_memory ~progress_display_mode x)
+            ~in_memory ~progress_display_mode x)
         Fun.id
     in
-    Impl.restore_context ~expected_context_hash ~nb_context_elements ~fd ~legacy
+    Impl.restore_context ~expected_context_hash ~nb_context_elements ~fd
       ~in_memory ~progress_display_mode x
     >>= record_and_return_output
 
