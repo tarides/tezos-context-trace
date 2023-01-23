@@ -10,10 +10,10 @@
  (tarides packages irmin)
  (tarides packages tezos))
 
-(define irmin-tezos-benchmarking
+(define ocaml-tezos-context-replay
   (package-with-tezos-16
    (package
-     (name "irmin-tezos-benchmarking")
+     (name "ocaml-tezos-context-replay")
      (version "0.0.0")
      (home-page #f)
      (source (git-checkout (url (dirname (current-filename)))))
@@ -33,4 +33,4 @@
      (description #f)
      (license license:isc))))
 
-irmin-tezos-benchmarking
+ocaml-tezos-context-replay
