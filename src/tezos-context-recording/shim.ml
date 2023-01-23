@@ -314,10 +314,6 @@ module Make
 
     (* Tracked with unhandled *)
 
-    let shallow x y =
-      record_unhandled_direct Recorder.Tree_shallow @@ fun () ->
-      Impl.Tree.shallow x y |> Tree_traced.wrap
-
     let kinded_key x =
       record_unhandled_direct Recorder.Tree_kinded_key @@ fun () ->
       Impl.Tree.kinded_key (Tree_traced.unwrap x)
