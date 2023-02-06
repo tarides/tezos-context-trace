@@ -911,7 +911,14 @@ struct
     | `Fresh -> ()
     | `Copy_from origin ->
         (* 2 - then make a copy of the reference RO store, *)
-        exec_cmd "cp" [ "-r"; origin; store_dir ];
+        exec_cmd "cp"
+          [
+            (* use -L to dereference symbolic links *)
+            "-L";
+            "-r";
+            origin;
+            store_dir;
+          ];
         recursively_iter_files_in_directory chmod_rw store_dir);
     (* 4 - now launch the full replay, *)
     let* (`Warm replay_state) = exec_blocks { config; block_count } row_seq in
