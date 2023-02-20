@@ -190,6 +190,37 @@ module V0 = struct
     [@@deriving repr]
   end
 
+  (** All the cases that are not handled by a recorder.
+
+    WARNING: Do not ever remove tag from this list, only add new ones. *)
+  type unhandled =
+    | Tree_config
+    | Tree_kinded_key
+    | Tree_shallow
+    | Tree_to_raw
+    | Tree_pp
+    | Tree_length
+    | Tree_stats
+    | Length
+    | Stats
+    | Restore_context
+    | Check_protocol_commit_consistency
+    | Validate_context_hash_consistency_and_commit
+    | Legacy_restore_context
+    | Legacy_restore_contexts
+    | Legacy_get_protocol_data_from_header
+    | Legacy_dump_snapshot
+    | Produce_tree_proof
+    | Verify_tree_proof
+    | Produce_stream_proof
+    | Verify_stream_proof
+    | Index_empty
+    | Context_is_empty
+    | Config
+    | Equal_config
+    | To_memory_tree
+  [@@deriving repr]
+
   type row =
     (* [** __ ___] *)
     | Tree of Tree.t
@@ -262,7 +293,7 @@ module V0 = struct
     (* [__ __ i__] *)
     | Dump_context of timestamp_bounds
     (* special *)
-    | Unhandled of Recorder.unhandled
+    | Unhandled of unhandled
   [@@deriving repr]
 end
 
@@ -285,7 +316,8 @@ include Trace_auto_file_format.Make (struct
           ~row_t:V0.row_t ~upgrade_header:Fun.id ~upgrade_row:Fun.id
     | i ->
         let msg = Fmt.str "Unknown Raw_actions_trace version %d" i in
-        raise (Misc.Suspicious_trace_file msg)
+        raise @@ Failure msg
+  (* raise (Misc.Suspicious_trace_file msg) *)
 end)
 
 type file_type = [ `Ro | `Rw | `Misc ]

@@ -26,7 +26,7 @@
 include Trace_replay_intf
 open Lwt.Syntax
 module TzPervasives = Tezos_base.TzPervasives
-module Def = Replay_actions_trace_definitions
+module Def = Tezos_context_trace.Replay_actions
 
 module List = Stdlib.List
 (** Use List from Stdlib instead of the Tezos one. *)
@@ -576,7 +576,7 @@ struct
         Fmt.failwith "Got %a at %s" (Repr.pp Def.event_t) ev __LOC__
 
   let specs_of_row (row : Def.row) =
-    Tezos_context_recording.Stats_trace_definition.Commit_op.
+    Tezos_context_trace.Stats.Commit_op.
       {
         level = row.level;
         tzop_count = row.tzop_count;

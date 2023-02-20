@@ -1,0 +1,19 @@
+(library
+ (name tezos_context_trace)
+ (public_name tezos-context-trace)
+ (libraries
+  tezos-base
+  tezos-stdlib-unix
+  tezos-context.encoding
+  tezos-context.disk
+  tezos-context.sigs)
+ (preprocess
+   (pps ppx_repr ppx_deriving.enum))
+ (flags
+  (:standard
+   -open
+   Tezos_base__TzPervasives
+   -open
+   Tezos_stdlib_unix
+   -open
+   Tezos_stdlib)))

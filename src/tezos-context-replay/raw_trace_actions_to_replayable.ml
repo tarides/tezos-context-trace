@@ -37,9 +37,9 @@
     - Act on a slice of the raw trace (NYI) *)
 
 open Lwt.Syntax
-module Def0 = Tezos_context_recording.Raw_actions_trace_definition
-module Def1 = Replay_actions_trace_definitions
-module Trace_common = Tezos_context_recording.Trace_common
+module Def0 = Tezos_context_trace.Raw_actions
+module Def1 = Tezos_context_trace.Replay_actions
+module Trace_common = Tezos_context_trace.Common
 module Seq = Trace_common.Seq
 module Hashtbl = Stdlib.Hashtbl
 module List = Stdlib.List

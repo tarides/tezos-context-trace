@@ -33,11 +33,11 @@
     Computing a summary may take a long time if the input [Stats_trace] is long.
     Count ~1000 commits per second. *)
 
-module Def = Tezos_context_recording.Stats_trace_definition
+module Def = Tezos_context_trace.Stats
 module Conf = Trace_stats_summary_conf
 module Utils = Trace_stats_summary_utils
 module Vs = Utils.Variable_summary
-module Trace_common = Tezos_context_recording.Trace_common
+module Trace_common = Tezos_context_trace.Common
 
 type initial_row =
   [ `Frequent_op of Def.Frequent_op.tag * Def.Frequent_op.payload

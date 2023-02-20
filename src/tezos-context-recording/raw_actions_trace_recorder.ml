@@ -23,7 +23,7 @@
 (*                                                                           *)
 (*****************************************************************************)
 
-module Def = Raw_actions_trace_definition
+module Def = Tezos_context_trace.Raw_actions
 
 (** [system_wide_now] will be used to estimate the ordering of the [commit] and
     [sync] calls from one process to another.
@@ -343,7 +343,7 @@ struct
   let restore_context _ ~expected_context_hash:_ ~nb_context_elements:_ ~fd:_
       ~in_memory:_ ~progress_display_mode:_ =
     Lwt.return @@ fun _res ->
-    Def.Unhandled Recorder.Restore_context |> push;
+    Def.(Unhandled Restore_context) |> push;
     Lwt.return_unit
 
   let dump_context _ _ ~fd:_ ~on_disk:_ ~progress_display_mode:_ =

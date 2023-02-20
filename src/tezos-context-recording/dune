@@ -8,6 +8,7 @@
   tezos-context.disk
   tezos-context.sigs
   tezos-context.memory
+  tezos-context-trace
   repr
   irmin
   rusage
@@ -18,15 +19,11 @@
   (pps ppx_repr ppx_deriving.enum))
  (modules
   misc
-  raw_actions_trace_definition
+  ;raw_actions_trace_definition
   raw_actions_trace_recorder
   recorder
   shim
-  stats_trace_definition
   stats_trace_recorder
-  trace_common
-  trace_auto_file_format
-  trace_auto_file_format_intf
   ; trace_raw_actions_summary
   ;trace_stats_summary
   ; trace_stats_summary_cb

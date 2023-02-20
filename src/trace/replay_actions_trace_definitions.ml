@@ -122,10 +122,7 @@ module List = Stdlib.List
 (** Use failwith from Stdlib instead of the Tezos one. *)
 let failwith = Stdlib.failwith
 
-module Trace_common = Tezos_context_recording.Trace_common
-(** Import from recording to avoid duplication. *)
-
-module Trace_auto_file_format = Tezos_context_recording.Trace_auto_file_format
+module Trace_auto_file_format = Trace_auto_file_format
 
 open struct
   module Seq = Trace_common.Seq

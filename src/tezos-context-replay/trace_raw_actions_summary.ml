@@ -31,8 +31,8 @@ module Option = Stdlib.Option
 module List = Stdlib.List
 (** Use Stdlib.List instead of the Tezos one. *)
 
-module Def = Tezos_context_recording.Raw_actions_trace_definition
-module Trace_common = Tezos_context_recording.Trace_common
+module Def = Tezos_context_trace.Raw_actions
+module Trace_common = Tezos_context_trace.Common
 (* TODO: Move [Trace_common] to replay *)
 
 module Op = struct

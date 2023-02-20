@@ -24,7 +24,7 @@
 (*****************************************************************************)
 
 open Lwt_syntax
-module Def = Stats_trace_definition
+module Def = Tezos_context_trace.Stats
 
 (** Stats trace writer, to be instanciated from replay or from tezos-node using
     [Make] (below). *)

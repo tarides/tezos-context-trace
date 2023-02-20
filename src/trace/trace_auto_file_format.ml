@@ -25,6 +25,8 @@
 
 include Trace_auto_file_format_intf
 
+exception Suspicious_trace_file of string
+
 type ('latest_header, 'latest_row, 'header, 'row) version_converter' = {
   header_t : 'header Repr.ty;
   row_t : 'row Repr.ty;
@@ -105,7 +107,7 @@ module Var_int = struct
     let rec aux n p =
       let () =
         if p >= max_bits then
-          raise (Misc.Suspicious_trace_file "Failed to decode varint")
+          raise (Suspicious_trace_file "Failed to decode varint")
       in
       let i = input_char chan |> Char.code in
       let n = n + ((i land 127) lsl p) in
@@ -140,7 +142,7 @@ module Make (Ff : FILE_FORMAT) = struct
              took only %d."
             len !offset_ref
         in
-        raise (Misc.Suspicious_trace_file msg)
+        raise (Suspicious_trace_file msg)
     in
     v
 
@@ -163,7 +165,7 @@ module Make (Ff : FILE_FORMAT) = struct
     let () =
       if len < 12L then
         let msg = Fmt.str "File '%s' should be at least 12 byte long" path in
-        raise (Misc.Suspicious_trace_file msg)
+        raise (Suspicious_trace_file msg)
     in
 
     let magic = Magic.of_string (really_input_string chan 8) in
@@ -173,7 +175,7 @@ module Make (Ff : FILE_FORMAT) = struct
           Fmt.str "File '%s' has magic '%a'. Expected '%a'." path Magic.pp magic
             Magic.pp Ff.magic
         in
-        raise (Misc.Suspicious_trace_file msg)
+        raise (Suspicious_trace_file msg)
     in
 
     let offset_ref = ref 0 in

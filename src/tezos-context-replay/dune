@@ -13,7 +13,7 @@
   yojson
   ppx_deriving_yojson)
  (modules
-  replay_actions_trace_definitions
+  ;replay_actions_trace_definitions
   raw_trace_actions_to_replayable
   trace_replay
   trace_replay_intf
