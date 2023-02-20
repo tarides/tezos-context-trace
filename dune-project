@@ -6,7 +6,7 @@
  (name tezos-context-trace-tools))
 
 (package
- (name tezos-context-recorder))
+ (name tezos-context-trace-recorder))
 
 (package
  (name tezos-context-trace))
