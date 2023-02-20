@@ -5,5 +5,5 @@
  (package tezos-context-replay-tools)
  (libraries
   cmdliner
-  tezos-context-recording
+  tezos-context-recorder
   tezos-context-replay-tools.stats_summary))

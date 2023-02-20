@@ -6,7 +6,7 @@
  (name tezos-context-replay-tools))
 
 (package
- (name tezos-context-recording))
+ (name tezos-context-recorder))
 
 (package
  (name tezos-context-trace))

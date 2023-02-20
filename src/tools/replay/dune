@@ -7,7 +7,7 @@
   tezos-base
   tezos-context
   tezos-context-replay-tools.stats_summary
-  tezos-context-recording)
+  tezos-context-recorder)
  (preprocess
   (pps ppx_repr ppx_deriving.enum ppx_deriving_yojson))
  (flags
