@@ -1,0 +1,9 @@
+(executable
+ (name manage_stats)
+ (public_name tezos-context-manage-stats)
+ (modules manage_stats)
+ (package tezos-context-replay-tools)
+ (libraries
+  cmdliner
+  tezos-context-recording
+  tezos-context-replay-tools.stats_summary))

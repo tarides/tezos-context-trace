@@ -25,9 +25,8 @@
 
 (** [manage_stats.exe --help] *)
 
-open Tezos_context_replay
 module Def = Tezos_context_trace.Stats
-module Summary = Trace_stats_summary
+module Summary = Tezos_context_trace_stats_summary.Trace_stats_summary
 
 let summarise path =
   Summary.(summarise path |> Fmt.pr "%a\n" (Irmin.Type.pp_json t))
@@ -49,7 +48,9 @@ let pp name_per_path paths cols_opt =
     | Some v -> v
     | None -> if List.length summaries > 1 then 4 else 5
   in
-  Fmt.pr "%a\n" (Trace_stats_summary_pp.pp col_count) (name_per_path, summaries)
+  Fmt.pr "%a\n"
+    (Tezos_context_trace_stats_summary.Trace_stats_summary_pp.pp col_count)
+    (name_per_path, summaries)
 
 let pp paths named_paths cols_opt =
   let name_per_path, paths =
@@ -62,7 +63,8 @@ let pp paths named_paths cols_opt =
 
 let pp_gc name_per_path paths which_gcs =
   let summaries = List.map summary_of_path paths in
-  Fmt.pr "%a\n" Trace_stats_summary_pp_gc.pp_gc
+  Fmt.pr "%a\n"
+    Tezos_context_trace_stats_summary.Trace_stats_summary_pp_gc.pp_gc
     (name_per_path, summaries, which_gcs)
 
 let pp_gc paths named_paths which_gcs =

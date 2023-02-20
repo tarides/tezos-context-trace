@@ -1,0 +1,7 @@
+(executable
+ (name manage_actions)
+ (public_name tezos-context-manage-actions)
+ (package tezos-context-replay-tools)
+ (libraries cohttp-lwt-unix cmdliner tezos-context-recording)
+ (preprocess
+  (pps ppx_repr ppx_deriving.enum ppx_deriving_yojson)))

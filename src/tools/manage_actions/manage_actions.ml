@@ -30,10 +30,8 @@ let deprecated_exit = (Term.exit [@alert "-deprecated"])
 let deprecated_eval_choice = (Term.eval_choice [@alert "-deprecated"])
 
 module Rawdef = Tezos_context_trace.Raw_actions
-module Summary = Tezos_context_replay.Trace_raw_actions_summary
-
-module Trace_raw_actions_to_replayable =
-  Tezos_context_replay.Raw_trace_actions_to_replayable
+module Summary = Trace_raw_actions_summary
+module Trace_raw_actions_to_replayable = Raw_trace_actions_to_replayable
 
 (* Get the common time. *)
 let now_s () = Mtime.Span.to_s (Mtime_clock.elapsed ())

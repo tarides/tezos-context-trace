@@ -1,0 +1,14 @@
+(executable
+ (name replay)
+ (public_name tezos-context-replay)
+ (package tezos-context-replay-tools)
+ (libraries
+  cmdliner
+  tezos-base
+  tezos-context
+  tezos-context-replay-tools.stats_summary
+  tezos-context-recording)
+ (preprocess
+  (pps ppx_repr ppx_deriving.enum ppx_deriving_yojson))
+ (flags
+  (:standard -open Tezos_base__TzPervasives)))

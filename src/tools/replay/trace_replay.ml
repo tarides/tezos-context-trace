@@ -24,6 +24,7 @@
 (*****************************************************************************)
 
 include Trace_replay_intf
+open Tezos_context_trace_stats_summary
 open Lwt.Syntax
 module TzPervasives = Tezos_base.TzPervasives
 module Def = Tezos_context_trace.Replay_actions

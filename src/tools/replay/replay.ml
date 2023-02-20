@@ -29,8 +29,6 @@ let deprecated_info = (Term.info [@alert "-deprecated"])
 let deprecated_eval = (Term.eval [@alert "-deprecated"])
 let deprecated_exit = (Term.exit [@alert "-deprecated"])
 
-module Trace_replay = Tezos_context_replay.Trace_replay
-
 type indexing_strategy = Always | Minimal | Contents
 
 let main indexing_strategy block_count startup_store_type replayable_trace_path

@@ -9,7 +9,4 @@
  (name tezos-context-recording))
 
 (package
- (name tezos-context-replay))
-
-(package
  (name tezos-context-trace))
