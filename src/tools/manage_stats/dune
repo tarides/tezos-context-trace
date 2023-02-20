@@ -2,8 +2,8 @@
  (name manage_stats)
  (public_name tezos-context-manage-stats)
  (modules manage_stats)
- (package tezos-context-replay-tools)
+ (package tezos-context-trace-tools)
  (libraries
   cmdliner
   tezos-context-recorder
-  tezos-context-replay-tools.stats_summary))
+  tezos-context-trace-tools.stats_summary))

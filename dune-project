@@ -3,7 +3,7 @@
 (generate_opam_files true)
 
 (package
- (name tezos-context-replay-tools))
+ (name tezos-context-trace-tools))
 
 (package
  (name tezos-context-recorder))
