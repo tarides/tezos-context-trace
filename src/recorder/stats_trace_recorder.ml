@@ -28,7 +28,9 @@ module Def = Tezos_context_trace.Stats
 
 (** Stats trace writer, to be instanciated from replay or from tezos-node using
     [Make] (below). *)
-module Writer (Impl : Tezos_context_disk.TEZOS_CONTEXT_UNIX) = struct
+module Writer = struct
+  module Impl = Tezos_context_disk.Context
+
   let is_darwin =
     try
       match Unix.open_process_in "uname" |> input_line with
@@ -427,13 +429,13 @@ module Writer (Impl : Tezos_context_disk.TEZOS_CONTEXT_UNIX) = struct
   let add_gc_row t stats = Def.append_row t.writer (`Gc_finalised stats)
 end
 
-module Make
-    (Impl : Tezos_context_disk.TEZOS_CONTEXT_UNIX) (Trace_config : sig
-      val prefix : string
-      val message : string option
-    end) =
+module Make (Trace_config : sig
+  val prefix : string
+  val message : string option
+end) =
 struct
-  module Writer = Writer (Impl)
+  module Writer = Writer
+  module Impl = Tezos_context_disk.Context
 
   let path = ref None
   let specs = ref None
@@ -642,8 +644,6 @@ struct
   let () =
     Stdlib.at_exit (fun () ->
         match !writer with None -> () | Some w -> Writer.close w)
-
-  module Impl = Impl
 
   type varint63 = Optint.Int63.t [@@deriving repr]
 

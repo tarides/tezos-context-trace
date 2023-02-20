@@ -26,10 +26,7 @@
 (** Constructor of a [Tezos_context] wrapper that notifies the [Recorders]
     before and after each function call. *)
 module Make : functor
-  (Impl : Tezos_context_disk.TEZOS_CONTEXT_UNIX)
   (Recorders : sig
-     module type RECORDER = Recorder.S with module Impl = Impl
-
-     val l : (module RECORDER) list
+     val l : (module Recorder.S) list
    end)
   -> Tezos_context_disk.TEZOS_CONTEXT_UNIX

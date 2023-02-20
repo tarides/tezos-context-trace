@@ -69,7 +69,7 @@ type unhandled =
 [@@deriving repr]
 
 module type S = sig
-  module Impl : Tezos_context_disk.TEZOS_CONTEXT_UNIX
+  module Impl = Tezos_context_disk.Context
 
   type tree = Impl.tree * Optint.Int63.t
   (** A [Context.tree] alongside a unique identifier. *)

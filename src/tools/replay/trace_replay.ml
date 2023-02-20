@@ -137,25 +137,19 @@ module Make
     (Context : Tezos_context_disk.TEZOS_CONTEXT_UNIX)
     (Raw_config : Config) =
 struct
-  module type RECORDER =
-    Tezos_context_recorder.Recorder.S with module Impl = Context
+  module type RECORDER = Tezos_context_recorder.Recorder.S
 
   module Stat_recorder =
-    Tezos_context_recorder.Stats_trace_recorder.Make
-      (Context)
-      (struct
-        let prefix = Raw_config.v.artefacts_dir
-        let message = Raw_config.v.stats_trace_message
-      end)
+  Tezos_context_recorder.Stats_trace_recorder.Make (struct
+    let prefix = Raw_config.v.artefacts_dir
+    let message = Raw_config.v.stats_trace_message
+  end)
 
-  module Context =
-    Tezos_context_recorder.Shim.Make
-      (Context)
-      (struct
-        module type RECORDER = RECORDER
+  module Context = Tezos_context_recorder.Shim.Make (struct
+    module type RECORDER = RECORDER
 
-        let l = [ (module Stat_recorder : RECORDER) ]
-      end)
+    let l = [ (module Stat_recorder : RECORDER) ]
+  end)
 
   type ('a, 'b) assoc = ('a * 'b) list
 

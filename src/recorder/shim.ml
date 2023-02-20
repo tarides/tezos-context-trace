@@ -86,12 +86,11 @@ end
 
 (** Seemlessly wrap [Impl] while notifying the [Recorders] of what's
     happening. *)
-module Make
-    (Impl : Tezos_context_disk.TEZOS_CONTEXT_UNIX) (Recorders : sig
-      module type RECORDER = Recorder.S with module Impl = Impl
+module Make (Recorders : sig
+  val l : (module Recorder.S) list
+end) : Tezos_context_disk.TEZOS_CONTEXT_UNIX = struct
+  module Impl = Tezos_context_disk.Context
 
-      val l : (module RECORDER) list
-    end) : Tezos_context_disk.TEZOS_CONTEXT_UNIX = struct
   (** Instanciate the tree tracker *)
   module Tree_traced = Make_tracked (struct
     type t = Impl.tree
