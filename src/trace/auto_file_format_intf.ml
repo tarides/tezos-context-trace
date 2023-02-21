@@ -83,7 +83,7 @@ module type S = sig
   val close : writer -> unit
 end
 
-module type Trace_auto_file_format = sig
+module type Auto_file_format = sig
   type ('a, 'b) version_converter
 
   val create_version_converter :

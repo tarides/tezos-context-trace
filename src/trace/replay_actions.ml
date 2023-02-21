@@ -122,11 +122,8 @@ module List = Stdlib.List
 (** Use failwith from Stdlib instead of the Tezos one. *)
 let failwith = Stdlib.failwith
 
-module Trace_auto_file_format = Trace_auto_file_format
-
-open struct
-  module Seq = Trace_common.Seq
-end
+module Trace_auto_file_format = Auto_file_format
+module Seq = Common.Seq
 
 (** [Replayable_actions_trace], a ready to replay trace of Tezos's interactions
     with lib_context.

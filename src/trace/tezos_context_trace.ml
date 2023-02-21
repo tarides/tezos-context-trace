@@ -23,7 +23,7 @@
 (*                                                                           *)
 (*****************************************************************************)
 
-module Raw_actions = Raw_actions_trace_definition
-module Replay_actions = Replay_actions_trace_definitions
-module Stats = Stats_trace_definition
-module Common = Trace_common
+module Raw_actions = Raw_actions
+module Replay_actions = Replay_actions
+module Stats = Stats
+module Common = Common

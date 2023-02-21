@@ -23,7 +23,7 @@
 (*                                                                           *)
 (*****************************************************************************)
 
-include Trace_auto_file_format_intf
+include Auto_file_format_intf
 
 exception Suspicious_trace_file of string
 

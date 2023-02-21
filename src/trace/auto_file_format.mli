@@ -23,4 +23,4 @@
 (*                                                                           *)
 (*****************************************************************************)
 
-include Trace_auto_file_format_intf.Trace_auto_file_format
+include Auto_file_format_intf.Auto_file_format

@@ -300,7 +300,7 @@ end
 module Latest = V0
 include Latest
 
-include Trace_auto_file_format.Make (struct
+include Auto_file_format.Make (struct
   module Latest = Latest
 
   (** Irmin's Raw Bootstrap Trace
@@ -308,11 +308,11 @@ include Trace_auto_file_format.Make (struct
       The meaning is a bit stale but let's preserve backward compatibility with
       existing files.
    *)
-  let magic = Trace_auto_file_format.Magic.of_string "TezosRaw"
+  let magic = Auto_file_format.Magic.of_string "TezosRaw"
 
   let get_version_converter = function
     | 0 ->
-        Trace_auto_file_format.create_version_converter ~header_t:V0.header_t
+        Auto_file_format.create_version_converter ~header_t:V0.header_t
           ~row_t:V0.row_t ~upgrade_header:Fun.id ~upgrade_row:Fun.id
     | i ->
         let msg = Fmt.str "Unknown Raw_actions_trace version %d" i in

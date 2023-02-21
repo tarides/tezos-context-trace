@@ -476,19 +476,19 @@ let path_per_watched_node =
     (fun (k, l) -> (k, "/" ^ Stdlib.String.concat "/" l))
     step_list_per_watched_node
 
-include Trace_auto_file_format.Make (struct
+include Auto_file_format.Make (struct
   module Latest = Latest
 
   (** Irmin's Stats Bootstrap Trace *)
-  let magic = Trace_auto_file_format.Magic.of_string "TezosSta"
+  let magic = Auto_file_format.Magic.of_string "TezosSta"
 
   let get_version_converter = function
     | 0 ->
-        Trace_auto_file_format.create_version_converter ~header_t:V0.header_t
+        Auto_file_format.create_version_converter ~header_t:V0.header_t
           ~row_t:V0.row_t ~upgrade_header:Fun.id ~upgrade_row:(fun row ->
             (row : V0.row :> V1.row))
     | 1 ->
-        Trace_auto_file_format.create_version_converter ~header_t:V1.header_t
+        Auto_file_format.create_version_converter ~header_t:V1.header_t
           ~row_t:V1.row_t ~upgrade_header:Fun.id ~upgrade_row:Fun.id
     | i -> Fmt.invalid_arg "Unknown Stats_trace version %d" i
 end)
