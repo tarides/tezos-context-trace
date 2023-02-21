@@ -38,10 +38,9 @@ module Def = Tezos_context_trace.Raw_actions
 let system_wide_now () =
   Mtime_clock.now () |> Mtime.to_uint64_ns |> Int64.to_float |> ( *. ) 1e-9
 
-module Make
-    (Impl : Tezos_context_disk.TEZOS_CONTEXT_UNIX) (Trace_config : sig
-      val prefix : string
-    end) =
+module Make (Trace_config : sig
+  val prefix : string
+end) =
 struct
   (** Per-process raw trace writer. *)
   let writer = ref None
@@ -68,7 +67,7 @@ struct
     Stdlib.at_exit (fun () ->
         match !writer with None -> () | Some w -> Def.close w)
 
-  module Impl = Impl
+  module Impl = Tezos_context_disk.Context
 
   type varint63 = Optint.Int63.t [@@deriving repr]
 
