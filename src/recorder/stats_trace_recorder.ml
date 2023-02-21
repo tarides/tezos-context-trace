@@ -103,34 +103,21 @@ module Writer = struct
 
     let tree () =
       (* This call directly targets [Impl], it will not be recorded *)
-      (* TODO reenable these counters or remove direct stat recording completely. *)
-      (* let v = Impl.module_tree_stats () in *)
+      let v = Impl.module_tree_stats () in
       Def.
         {
-          contents_hash = 0;
-          (* v.contents_hash; *)
-          contents_find = 0;
-          (* v.contents_find; *)
-          contents_add = 0;
-          (* v.contents_add; *)
-          contents_mem = 0;
-          (* v.contents_mem; *)
-          node_hash = 0;
-          (* v.node_hash; *)
-          node_mem = 0;
-          (* v.node_mem; *)
-          node_index = 0;
-          (* v.node_index; *)
-          node_add = 0;
-          (* v.node_add; *)
-          node_find = 0;
-          (* v.node_find; *)
-          node_val_v = 0;
-          (* v.node_val_v; *)
-          node_val_find = 0;
-          (* v.node_val_find; *)
-          node_val_list = 0;
-          (* v.node_val_list; *)
+          contents_hash = v.contents_hash;
+          contents_find = v.contents_find;
+          contents_add = v.contents_add;
+          contents_mem = v.contents_mem;
+          node_hash = v.node_hash;
+          node_mem = v.node_mem;
+          node_index = v.node_index;
+          node_add = v.node_add;
+          node_find = v.node_find;
+          node_val_v = v.node_val_v;
+          node_val_find = v.node_val_find;
+          node_val_list = v.node_val_list;
         }
 
     let index prev_merge_durations =
@@ -251,13 +238,13 @@ module Writer = struct
   let dummy_store_before =
     Def.{ nodes = 0; leafs = 0; skips = 0; depth = 0; width = 0 }
 
-  let create_store_before _context =
-    (* let+ Impl.{ nodes; leafs; skips; depth; width } = *)
-    (*   (\* This call directly targets [Impl], it will not be recorded *\) *)
-    (*   let* tree = Impl.find_tree context [] in *)
-    (*   match tree with None -> assert false | Some t -> Impl.tree_stats t *)
-    (* in *)
-    return Def.{ nodes = 0; leafs = 0; skips = 0; depth = 0; width = 0 }
+  let create_store_before context =
+    let+ Impl.{ nodes; leafs; skips; depth; width } =
+      (* This call directly targets [Impl], it will not be recorded *)
+      let* tree = Impl.find_tree context [] in
+      match tree with None -> assert false | Some t -> Impl.tree_stats t
+    in
+    Def.{ nodes; leafs; skips; depth; width }
 
   let create_store_after context =
     let* watched_nodes_length =
