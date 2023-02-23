@@ -636,6 +636,14 @@ let event_infos =
       ( Tree_config | Tree_kinded_key | Index_empty | Context_is_empty | Config
       | Equal_config | To_memory_tree ) ->
       crash
+  | Gc ((h, x), _) ->
+      {
+        rank = `Use;
+        tracker_ids = ([], [], [ h ]);
+        to_v1 = (fun ids -> Def1.Gc (scopeh_lhs ids h, x));
+      }
+  | Split ->
+      { rank = `Use; tracker_ids = ([], [], []); to_v1 = (fun _ -> Def1.Split) }
 
 (* TODO: ignore everything or crash on some cases? *)
 

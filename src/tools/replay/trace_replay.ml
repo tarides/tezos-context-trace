@@ -521,6 +521,12 @@ struct
     let chain_id = Chain_id.of_string_exn chain_id in
     Context.clear_test_chain rs.index chain_id
 
+  let exec_gc rs (hash, _res) =
+    let hash = on_lhs_hash rs hash in
+    Context.gc rs.index hash
+
+  let exec_split rs = Context.split rs.index
+
   let exec_simple_event rs = function
     | Def.Tree ev -> (
         match ev with
@@ -569,6 +575,8 @@ struct
       | Commit_genesis_end _ | Commit_genesis_start _ | Commit _
       | Patch_context_exit _ | Patch_context_enter _ ) as ev ->
         Fmt.failwith "Got %a at %s" (Repr.pp Def.event_t) ev __LOC__
+    | Gc data -> exec_gc rs data
+    | Split -> exec_split rs
 
   let specs_of_row (row : Def.row) =
     Tezos_context_trace.Stats.Commit_op.

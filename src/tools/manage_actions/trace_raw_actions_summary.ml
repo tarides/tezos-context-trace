@@ -107,7 +107,9 @@ module Op = struct
       | `Dump_context
       | `Check_protocol_commit_consistency
       | `Validate_context_hash_consistency_and_commit
-      | `Unhandled ]
+      | `Unhandled
+      | `Gc
+      | `Split ]
     [@@deriving repr, enum]
 
     let all : t list = List.init (max + 1) (fun i -> of_enum i |> Option.get)
@@ -193,6 +195,8 @@ module Op = struct
       | Patch_context_exit _ -> `Patch_context_exit
       | Dump_context _ -> `Dump_context
       | Unhandled _s -> `Unhandled
+      | Gc _ -> `Gc
+      | Split -> `Split
   end
 
   module Make_map (Val : sig

@@ -294,6 +294,10 @@ module V0 = struct
     | Dump_context of timestamp_bounds
     (* special *)
     | Unhandled of unhandled
+    (* gc (added with Irmin 3.4) *)
+    | Gc of (commit_hash, unit) fn * timestamp_bounds
+    (* split (added with Irmin 3.5) *)
+    | Split
   [@@deriving repr]
 end
 

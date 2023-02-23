@@ -306,6 +306,10 @@ module V0 = struct
     | Init of (bool, unit) fn
     | Patch_context_enter of context
     | Patch_context_exit of context * context
+    (* gc (added with Irmin 3.4) *)
+    | Gc of (commit_hash_lhs, unit) fn
+    (* split (added with Irmin 3.5) *)
+    | Split
   [@@deriving repr]
 
   type row = {

@@ -742,6 +742,20 @@ end) : Tezos_context_disk.TEZOS_CONTEXT_UNIX = struct
     record_unhandled_direct Recorder.To_memory_tree @@ fun () ->
     Impl.to_memory_tree (Context_traced.unwrap x) y
 
+  let gc index hash =
+    let index_unwrapped = Index_abstract.unwrap index in
+    let* record_and_return_output =
+      iter_recorders_lwt (fun (module R) -> R.gc index_unwrapped hash) Fun.id
+    in
+    Impl.gc index_unwrapped hash >>= record_and_return_output
+
+  let split index =
+    let index_unwrapped = Index_abstract.unwrap index in
+    let* record_and_return_output =
+      iter_recorders_lwt (fun (module R) -> R.split index_unwrapped) Fun.id
+    in
+    Impl.split index_unwrapped >>= record_and_return_output
+
   (* Not tracked *)
 
   module Checks = Impl.Checks
@@ -758,14 +772,11 @@ end) : Tezos_context_disk.TEZOS_CONTEXT_UNIX = struct
     let+ z = Impl.set_hash_version (Context_traced.unwrap x) y in
     Context_traced.wrap z
 
-  let gc x y = Impl.gc (Index_abstract.unwrap x) y
-
   let wait_gc_completion index =
     Impl.wait_gc_completion (Index_abstract.unwrap index)
 
   let flush x = Impl.flush (Context_traced.unwrap x) >|= Context_traced.wrap
   let is_gc_allowed x = Impl.is_gc_allowed (Index_abstract.unwrap x)
-  let split index = Impl.split (Index_abstract.unwrap index)
 
   let export_snapshot index context_hash ~path =
     Impl.export_snapshot (Index_abstract.unwrap index) context_hash ~path

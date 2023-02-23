@@ -254,4 +254,7 @@ module type S = sig
     on_disk:bool ->
     progress_display_mode:Animation.progress_display_mode ->
     int tzresult output_lwt
+
+  val gc : Impl.index -> Context_hash.t -> unit output_lwt
+  val split : Impl.index -> unit output_lwt
 end

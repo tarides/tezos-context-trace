@@ -913,6 +913,24 @@ struct
     dump_context_end ();
     Lwt.return_unit
 
+  let gc _index _hash =
+    report_gc_start ();
+    (* NOTE[adatario]: This is exactly what the hacked in GC stats in
+       `trace_replay.ml` does. I have no clue why there are so many
+       nested Lwt.return's.
+    *)
+    Lwt.return @@ fun _res ->
+    let latest_gc =
+      Irmin_pack_unix.Stats.((get ()).latest_gc |> Latest_gc.export)
+    in
+    match latest_gc with
+    | None -> assert false
+    | Some s -> Lwt.return @@ report_gc s
+
+  let split _index =
+    (* TODO: record the split in the stats trace *)
+    Lwt.return @@ fun _res -> Lwt.return_unit
+
   (** Not simple direct *)
   let unhandled _name _res = ()
 end
