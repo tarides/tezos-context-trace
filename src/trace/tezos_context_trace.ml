@@ -32,3 +32,4 @@ module Common = Common
 
 module Recorder = Recorder
 module Stats_recorder = Stats_trace_recorder
+module Raw_actions_recorder = Raw_actions_trace_recorder
