@@ -352,5 +352,18 @@ struct
     Def.Dump_context { before; after } |> push;
     Lwt.return_unit
 
+  let gc _index hash =
+    let hash = Context_hash.to_string hash in
+    let before = system_wide_now () in
+    Lwt.return @@ fun _res ->
+    let after = system_wide_now () in
+    Def.Gc ((hash, ()), { before; after }) |> push;
+    Lwt.return_unit
+
+  let split _index =
+    Lwt.return @@ fun _res ->
+    Def.Split |> push;
+    Lwt.return_unit
+
   let unhandled name _res = Def.Unhandled name |> push
 end
