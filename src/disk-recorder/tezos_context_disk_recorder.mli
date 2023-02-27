@@ -27,6 +27,6 @@
     before and after each function call. *)
 module Make : functor
   (Recorders : sig
-     val l : (module Recorder.S) list
+     val l : (module Tezos_context_trace.Recorder.S) list
    end)
   -> Tezos_context_disk.TEZOS_CONTEXT_UNIX

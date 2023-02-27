@@ -84,6 +84,8 @@ end = struct
   let unwrap = Fun.id
 end
 
+module Recorder = Tezos_context_trace.Recorder
+
 (** Seemlessly wrap [Impl] while notifying the [Recorders] of what's
     happening. *)
 module Make (Recorders : sig

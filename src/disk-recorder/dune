@@ -1,12 +1,20 @@
 (library
- (name tezos_context_trace)
- (public_name tezos-context.trace)
+ (name tezos_context_disk_recorder)
+ (public_name tezos-context.disk-recorder)
  (libraries
   tezos-base
   tezos-stdlib-unix
   tezos-context.encoding
   tezos-context.disk
-  tezos-context.sigs)
+  tezos-context.sigs
+  tezos-context.memory
+  tezos-context.trace
+  repr
+  irmin
+  rusage
+  bentov
+  printbox
+  printbox-text)
  (preprocess
   (pps ppx_repr ppx_deriving.enum))
  (flags

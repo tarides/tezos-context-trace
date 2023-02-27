@@ -23,7 +23,7 @@
 (*                                                                           *)
 (*****************************************************************************)
 
-module Def = Tezos_context_trace.Raw_actions
+module Def = Raw_actions
 
 (** [system_wide_now] will be used to estimate the ordering of the [commit] and
     [sync] calls from one process to another.

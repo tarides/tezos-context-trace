@@ -40,7 +40,7 @@
 (** All the cases that are not handled by a recorder.
 
     WARNING: Do not ever remove tag from this list, only add new ones. *)
-type unhandled = Tezos_context_trace.Raw_actions.unhandled =
+type unhandled = Raw_actions.unhandled =
   | Tree_config
   | Tree_kinded_key
   | Tree_shallow

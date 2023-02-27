@@ -7,7 +7,8 @@
   tezos-base
   tezos-context
   tezos-context-trace-tools.stats_summary
-  tezos-context-trace-recorder)
+  tezos-context.trace
+  tezos-context.disk-recorder)
  (preprocess
   (pps ppx_repr ppx_deriving.enum ppx_deriving_yojson))
  (flags

@@ -27,3 +27,8 @@ module Raw_actions = Raw_actions
 module Replay_actions = Replay_actions
 module Stats = Stats
 module Common = Common
+
+(** Recorders *)
+
+module Recorder = Recorder
+module Stats_recorder = Stats_trace_recorder
