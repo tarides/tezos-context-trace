@@ -68,8 +68,7 @@ let level_of_commit_message message =
     |> List.map String.trim
     |> List.map (String.split_on_char ' ')
   with
-  | [ [ "lvl"; lvl ]; [ "fit"; _ ]; [ "prio"; _ ]; [ _; "ops" ] ] ->
-      int_of_string lvl
+  | [ "lvl"; lvl ] :: _ -> int_of_string lvl
   | _ -> Fmt.failwith "Could not parse commit message: `%s`" message
 
 module Slice_input_seq = struct

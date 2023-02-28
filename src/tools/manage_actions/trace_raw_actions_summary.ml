@@ -289,6 +289,7 @@ let ops_per_segment_folder =
               |> List.map String.trim
               |> List.map (String.split_on_char ' ')
             with
+            (* TODO[adatario]: This commmit message parsing is broken *)
             | [ [ "lvl"; lvl ]; [ "fit"; _ ]; [ "prio"; _ ]; [ ops; "ops" ] ] ->
                 (int_of_string lvl, int_of_string ops)
             | _ -> Fmt.failwith "Could not parse commit message: `%s`" message
