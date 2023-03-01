@@ -593,7 +593,7 @@ let event_infos =
         to_v1 =
           (fun ids -> Def1.Patch_context_exit (scopec ids c, scopec ids c'));
       }
-  | List _ ->
+  | List ((_ctxt, _offset_opt, _length_opt), _trees) ->
       (* Since there are no occurences of it in the Raw trace, and since this is
          tricky to implement, let's not implement it yet to avoid introducing
          non-covered bugs *)

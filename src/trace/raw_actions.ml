@@ -226,6 +226,9 @@ module V0 = struct
     | Tree of Tree.t
     (* [_o i_ ___] *)
     | Find_tree of (context * key, tree option) fn
+    (* NOTE[adatario]: It seems like the key argument is missing.
+       Let's hope we don't have this in the raw actions trace.
+    *)
     | List of
         ( context * int option * int option,
           trees_with_contiguous_trackers (* not recording the steps *) )
