@@ -671,7 +671,10 @@ struct
   end
 
   module Commit_stats = struct
-    let h = open_out "/tmp/tezos_replay_stats"
+    let h =
+      match Sys.getenv_opt "TEZOS_CONTEXT_REPLAY_COMMIT_STATS" with
+      | Some path -> Some (open_out path)
+      | None -> None
 
     type t = { mutable previous_timer : float; mutable times : float list }
 
@@ -680,7 +683,7 @@ struct
     let isteps = int_of_float steps
     let time0 = isteps * int_of_float (t.previous_timer /. steps)
 
-    let print_stats () : unit =
+    let print_stats h : unit =
       let arr = Array.of_list t.times in
       t.times <- [];
       Array.sort Float.compare arr;
@@ -695,11 +698,16 @@ struct
         q2 q3 q4
 
     let add () =
-      let now = Unix.gettimeofday () in
-      if int_of_float (t.previous_timer /. steps) <> int_of_float (now /. steps)
-      then print_stats ();
-      t.times <- (now -. t.previous_timer) :: t.times;
-      t.previous_timer <- now
+      match h with
+      | Some h ->
+          let now = Unix.gettimeofday () in
+          if
+            int_of_float (t.previous_timer /. steps)
+            <> int_of_float (now /. steps)
+          then print_stats h;
+          t.times <- (now -. t.previous_timer) :: t.times;
+          t.previous_timer <- now
+      | None -> ()
   end
 
   let exec_commit rs ((time, message, c), hash) =
