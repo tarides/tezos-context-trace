@@ -618,6 +618,22 @@ struct
     val rs : warm_replay_state
   end) =
   struct
+    (** Custom event logging sink for recording GC start and stats.
+
+        Tezos uses a custom event logging framework (see
+        https://tezos.gitlab.io/user/logging.html) which is already
+        used to record GC start and end. This module implements an
+        event sink that listens for these GC events and records it to
+        the stats trace.
+
+        The reason for using the Tezos event logging framework instead
+        of using the `Stats_trace_recorder` is that the GC runs in a
+        forked process and waiting for it to return is tricky. Tezos
+        has properly setup hooks that wait for the GC to end and we
+        can just re-use them by plugging in to the event logging
+        framework.
+     *)
+
     type t = unit
 
     let uri_scheme = "context-replay"
