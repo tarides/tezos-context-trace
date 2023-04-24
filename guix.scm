@@ -1,4 +1,4 @@
-(use-modules
- (tarides packages tezos))
+(use-modules (tarides packages tezos)
+	     (tarides packages irmin))
 
-ocaml-tezos-context-trace
+(package-with-irmin-3.7 ocaml-tezos-context-trace)
