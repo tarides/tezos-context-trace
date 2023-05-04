@@ -5,5 +5,5 @@
  (package tezos-context-trace-tools)
  (libraries
   cmdliner
-  tezos-context.trace
+  tezos-context-trace
   tezos-context-trace-tools.stats_summary))

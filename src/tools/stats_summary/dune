@@ -1,6 +1,6 @@
 (library
  (name tezos_context_trace_stats_summary)
  (public_name tezos-context-trace-tools.stats_summary)
- (libraries tezos-context.trace bentov printbox-text)
+ (libraries tezos-context-trace bentov printbox-text)
  (preprocess
   (pps ppx_repr ppx_deriving.enum ppx_deriving_yojson)))

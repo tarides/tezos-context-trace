@@ -6,13 +6,10 @@ Tools for working with Tezos Context traces.
 
 `tezos-context` is a part of the [Tezos Octez implementation](https://gitlab.com/tezos/tezos) that uses [Irmin](https://github.com/mirage/irmin). The Irmin team has created a shim around `tezos-context` that records all `tezos-context` API calls and records them in a trace. This trace (after some pre-processing) is used to replay `tezos-context` API calls with different versions of Irmin in order to benchmark performance of changes to Irmin.
 
-The code in this repository is organized into two subpackages of `tezos-context`:
+The code in this repository is organized into three package:
 
-- [`tezos-context.trace`](./src/trace/): Holds type definitions for trace events and implements a serialization based on [repr](https://github.com/mirage/repr).
-- [`tezos-context.disk-recorder`](./src/disk-recorder/): An implementation of `Tezos_context_disk` that that records API calls into a trace.
-
-An additional package provides tooling:
-
+- [`tezos-context-trace`](./src/trace/): Holds type definitions for trace events and implements a serialization based on [repr](https://github.com/mirage/repr).
+- [`tezos-context-disk-recorder`](./src/disk-recorder/): An implementation of `Tezos_context_disk` that that records API calls into a trace.
 - [`tezos-context-trace-tools`](./src/tools/): Tools for working with traces. This includes the `tezos-context-replay` tool that is used for benchmarking.
 
 ## Recording a new trace

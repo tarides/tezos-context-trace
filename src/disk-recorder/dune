@@ -1,6 +1,6 @@
 (library
  (name tezos_context_disk_recorder)
- (public_name tezos-context.disk-recorder)
+ (public_name tezos-context-disk-recorder)
  (libraries
   tezos-base
   tezos-stdlib-unix
@@ -8,7 +8,7 @@
   tezos-context.disk
   tezos-context.sigs
   tezos-context.memory
-  tezos-context.trace
+  tezos-context-trace
   repr
   irmin
   rusage
