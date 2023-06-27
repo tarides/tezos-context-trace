@@ -26,6 +26,8 @@
 open Lwt_syntax
 module Def = Stats
 
+let mtime_span_to_s m = 1e-6 *. Mtime.Span.to_float_ns m
+
 (** Stats trace writer, to be instanciated from replay or from tezos-node using
     [Make] (below). *)
 module Writer = struct
@@ -327,7 +329,7 @@ module Writer = struct
   let direct_op_end t short_op =
     let short_op = (short_op :> Def.Frequent_op.tag) in
     let duration =
-      Direct_timer.end_ t |> Mtime.Span.to_s |> Int32.bits_of_float
+      Direct_timer.end_ t |> mtime_span_to_s |> Int32.bits_of_float
     in
     Def.append_row t.writer (`Frequent_op (short_op, duration))
 
@@ -338,7 +340,7 @@ module Writer = struct
   let recursive_op_end t short_op =
     let short_op = (short_op :> Def.Frequent_op.tag) in
     let duration =
-      Recursive_timer.end_ t |> Mtime.Span.to_s |> Int32.bits_of_float
+      Recursive_timer.end_ t |> mtime_span_to_s |> Int32.bits_of_float
     in
     Def.append_row t.writer (`Frequent_op (short_op, duration))
 
@@ -362,7 +364,7 @@ module Writer = struct
 
   let commit_end t ?specs ?context () =
     let duration = Recursive_timer.end_ t in
-    let duration = duration |> Mtime.Span.to_s |> Int32.bits_of_float in
+    let duration = duration |> mtime_span_to_s |> Int32.bits_of_float in
     let stats_after = Bag_of_stats.create t.store_path t.prev_merge_durations in
     t.prev_merge_durations <- Index.Stats.((get ()).merge_durations);
     let+ store_after =
@@ -394,7 +396,7 @@ module Writer = struct
 
   let stats_end t tag =
     let duration =
-      Direct_timer.end_ t |> Mtime.Span.to_s |> Int32.bits_of_float
+      Direct_timer.end_ t |> mtime_span_to_s |> Int32.bits_of_float
     in
     let stats_after = Bag_of_stats.create t.store_path t.prev_merge_durations in
     t.prev_merge_durations <- Index.Stats.((get ()).merge_durations);

@@ -34,7 +34,8 @@ module Summary = Trace_raw_actions_summary
 module Trace_raw_actions_to_replayable = Raw_trace_actions_to_replayable
 
 (* Get the common time. *)
-let now_s () = Mtime.Span.to_s (Mtime_clock.elapsed ())
+let mtime_span_to_s m = 1e-6 *. Mtime.Span.to_float_ns m
+let now_s () = mtime_span_to_s (Mtime_clock.elapsed ())
 
 (* Init a log reporter. *)
 let reporter ?(prefix = "") () =
